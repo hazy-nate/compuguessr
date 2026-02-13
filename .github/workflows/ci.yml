@@ -22,7 +22,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y nasm build-essential valgrind
+          sudo apt-get install -y nasm build-essential mold valgrind
       - name: Install Hurl
         uses: gacts/install-hurl@v1
       - name: Build server
