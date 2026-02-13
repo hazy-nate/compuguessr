@@ -18,5 +18,5 @@
 
 ## Team Workflow
 
-This is being completely solely by me.
+This is being completed solely by me.
 
