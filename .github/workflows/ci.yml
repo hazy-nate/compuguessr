@@ -35,6 +35,8 @@ jobs:
           NAWS_PID=$!
           sleep 2
           hurl --test test/integration.hurl
-          kill $NAWS_PID
+          HURL_EXIT=$?
+          kill -SIGTERM $NAWS_PID || true
           wait $NAWS_PID || true
+          exit $HURL_EXIT
 
