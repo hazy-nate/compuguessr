@@ -1,0 +1,39 @@
+
+name: naws CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_call:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y nasm build-essential valgrind
+      - name: Install Hurl
+        uses: gacts/install-hurl@v1
+      - name: Build server
+        run: |
+          sh build.sh
+          chmod +x naws
+      - name: Valgrind and Hurl
+        run: |
+          valgrind --leak-check=full --error-exitcode=1 ./naws &
+          NAWS_PID=$!
+          sleep 2
+          hurl --test test/integration.hurl
+          kill $NAWS_PID
+          wait $NAWS_PID || true
+
