@@ -30,7 +30,7 @@ jobs:
       run: make debug
 
     - name: Run tests
-      run: python3 tests/test_fcgi.py
+      run: make test
 
     - name: Verify build artifacts
       run: |
