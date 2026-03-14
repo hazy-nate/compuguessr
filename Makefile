@@ -28,7 +28,7 @@ CC_FLAGS	= -Wall -Wcast-align -Wextra -Wformat=2 -Wpedantic -Wpointer-arith \
 CPP_FLAGS 	=
 AS_FLAGS	=
 ASM_FLAGS	= -w+macro-params -w+number-overflow -w+orphan-labels -f elf64
-LD_FLAGS	= -fuse-ld=$(LD) -m elf_x86_64 -e _start -nostdlib -pie -static
+LD_FLAGS	= -m elf_x86_64 -e _start -nostdlib -pie -static
 
 ifeq ($(MODE), release)
 	CC_FLAGS	+= -Os -DNDEBUG -fno-asynchronous-unwind-tables -fno-unwind-tables
