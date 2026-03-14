@@ -1,0 +1,7 @@
+
+CompileFlags:
+  CompilationDatabase: "."
+  Add: [-Iinclude, -Wall, -Wextra, -std=c11]
+  
+Diagnostics:
+  Suppress: ["empty-translation-unit"]

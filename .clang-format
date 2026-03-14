@@ -1,0 +1,34 @@
+
+Language: C
+BasedOnStyle: LLVM
+
+ColumnLimit: 80
+SortIncludes: true
+AlignEscapedNewlines: Right
+
+# Indentation
+IndentWidth: 8
+UseTab: Always
+ContinuationIndentWidth: 4
+IndentCaseLabels: false
+
+# Spaces
+SpaceBeforeParens: ControlStatements
+SpaceAroundPointerQualifiers: Default
+SpaceBeforeAssignmentOperators: true
+
+# Braces
+BreakBeforeBraces: Custom
+BraceWrapping:
+  BeforeElse: false
+  AfterControlStatement: false
+  AfterFunction: true
+  AfterStruct: false
+  AfterEnum: false
+  AfterUnion: false
+
+# Function return type
+AlwaysBreakAfterReturnType: TopLevelDefinitions
+
+# Casts
+SpaceAfterCStyleCast: false

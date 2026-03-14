@@ -19,4 +19,3 @@
 ## Team Workflow
 
 This is being completed solely by me.
-

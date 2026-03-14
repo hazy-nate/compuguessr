@@ -1,25 +1,64 @@
 
-# naws
+# CompuGuessr
 
-naws stands for Nate's Assembly Web Server. This is an early prototype of a web
-server. For now, it isn't intended for production use.
+<div style="overflow-x: auto; width: 100%;">
+
+<pre style="width: max-content;"><code>
+   (                             (
+   )\           )             (  )\ )      (     (          (
+ (((_)   (     (     `  )    ))\(()/(     ))\   ))\ (   (   )(
+ )\___   )\    )\  ' /(/(   /((_)/(_))_  /((_) /((_))\  )\ (()\
+((/ __| ((_) _((_)) ((_)_\ (_))((_)) __|(_))( (_)) ((_)((_) ((_)
+ | (__ / _ \| '  \()| '_ \)| || | | (_ || || |/ -_)(_-<(_-<| '_|
+  \___|\___/|_|_|_| | .__/  \_,_|  \___| \_,_|\___|/__//__/|_|
+                    |_|
+
+</code></pre>
+</div>
+
+CompuGuessr is a FastCGI web application that gamifies challenges involving data.
 
 ## Building
 
-The server can be compiled with NASM. The build script uses `mold` by default,
-which is a newer drop-in replacement for the GNU linker. However, you can
-still use the GNU linker.
+The build process depends on these programs:
 
-```
-$ sh build.sh
+**Required:**
+
+- `clang` or `gcc`
+- `nasm`
+- `ld` or `mold`
+- `make`
+- `python`
+- `robodoc`
+- `sphinx`
+
+```bash
+git clone https://github.com/hazy-nate/compuguessr.git
+cd compuguessr
+make
 ```
 
 ## Running
 
-To run the server, simply run it as any other executable (preferably without
-superuser privileges and not exposed publicly).
+Since CompuGuessr is a FastCGI application, it's necessary to use a web server that supports FastCGI. The repository provides an example of a working configuration with lighttpd:
 
-```
-$ ./nasm
+```conf
+# compuguessr.conf
+
+server.modules          += ( "mod_fastcgi" )
+server.port             = 8080
+server.document-root    = "/var/www/html"
+
+fastcgi.server = (
+    "/" => ((
+        "bin-path"    => "<ABSOLUTE-PATH-TO-COMPUGUESSR-BIN>",
+        "socket"      => "/tmp/compguessr.sock",
+        "max-procs"   => 1,
+        "check-local" => "disable"
+    ))
+)
 ```
 
+```bash
+lighttpd -f compuguessr.conf
+```

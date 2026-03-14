@@ -1,2 +1,7 @@
-*.o
-naws
+bin
+build
+.cache
+compile_commands.json
+docs/_build
+docs/generated
+docs/robodoc
