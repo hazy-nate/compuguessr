@@ -40,3 +40,4 @@ pip install --upgrade pip
 pip install sphinx sphinx-rtd-theme
 
 printf "${BLUE}${BOLD}[*] Environment setup complete!${RESET}\n"
+

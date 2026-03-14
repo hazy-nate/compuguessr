@@ -60,5 +60,5 @@ fastcgi.server = (
 ```
 
 ```bash
-lighttpd -f compuguessr.conf
+lighttpd -D -f compuguessr.conf
 ```
