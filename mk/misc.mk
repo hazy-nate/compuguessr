@@ -1,37 +1,49 @@
+# SPDX-License-Identifier: GPL-2.0-only
+# Copyright (C) 2026 Nathaniel Williams
 
-FORMAT_TARGETS 	:= $(CC_SRCS:%=format-%) $(CH_SRCS:%=format-%)
-LINT_TARGETS 	:= $(CC_SRCS:%=lint-%) $(CH_SRCS:%=lint-%)
-TIDY_TARGETS	:= $(CC_SRCS:%=tidy-%) $(CH_SRCS:%=tidy-%)
+#****h* make/misc.mk
+# NAME
+#   misc.mk
+#******
 
-.PHONY:  dist gdb size TAGS tags valgrind
+#****f* make/misc.mk/gdb
+# NAME
+#   gdb
+# SOURCE
+gdb: $(BIN_OUT_DIR)/$(PROG)
+	@printf "$(YELLOW)$(BOLD)GDB$(RESET)      $(YELLOW)$(BIN_OUT_DIR)/$(PROG)$(RESET)\n"
+	$(Q)LD_LIBRARY_PATH=$(BIN_OUT_DIR) gdb -q -iex "set auto-load safe-path /" -x .gdbinit $(BIN_OUT_DIR)/$(PROG)
+#******
 
-dist: $(BIN_OUT_DIR)/$(PROG)
-	$(Q)$(STRIP) --strip-all $<
-	@printf "$(BLUE)$(BOLD)STRIP$(RESET)    $(BLUE)$<$(RESET)\n"
-	$(Q)$(OBJCOPY) --remove-section=.comment --remove-section=.note.gnu.build-id $<
-	@printf "$(BLUE)$(BOLD)OBJCOPY$(RESET)  $(BLUE)$<$(RESET)\n"
-	@if command -v checksec >/dev/null; then \
-		checksec --file=$<; \
-	fi
-	@printf "$(GREEN)$(BOLD)SUCCESS$(RESET)  Binary modified: $(BOLD)$<$(RESET) ($(YELLOW)$$(stat -c%s $<) bytes$(RESET))\n"
-
-gdb:
-	$(Q)gdb -q -iex "set auto-load safe-path /" -x .gdbinit $<
-
+#****f* make/misc.mk/size
+# NAME
+#   size
+# SOURCE
 size: $(BIN_OUT_DIR)/$(PROG)
 	@printf "$(YELLOW)$(BOLD)SIZE$(RESET)     $(YELLOW)$<$(RESET)\n"
 	$(Q)size --format=sysv --radix=10 $<
+#******
 
-TAGS tags: mostlyclean
-	$(Q)rm -f tags
+#****f* make/misc.mk/TAGS, make/misc.mk/tags
+# NAME
+#   TAGS tags
+# SOURCE
+TAGS tags:
+	@printf "$(MAGENTA)$(BOLD)TAGS$(RESET)     $(MAGENTA)Generating ctags for source files...$(RESET)\n"
+	$(Q)rm -f tags TAGS
 	$(Q)$(CTAGS) $(INC_SRCS) $(SRCS)
-	@$(foreach file, $(INC_SRCS), printf "$(MAGENTA)$(BOLD)TAGS$(RESET)     $(MAGENTA)$(file)$(RESET)\n";)
-	@$(foreach file, $(SRCS), printf "$(MAGENTA)$(BOLD)TAGS$(RESET)     $(MAGENTA)$(file)$(RESET)\n";)
+#******
 
+#****f* make/misc.mk/debug
+# NAME
+#   debug
+# SOURCE
 valgrind: debug
 	@printf "$(YELLOW)$(BOLD)VALGRIND$(RESET) $(YELLOW)$(BIN_OUT_DIR)/$(PROG)$(RESET)\n"
-	$(Q)$(VALGRIND) --leak-check=full \
+	$(Q)LD_LIBRARY_PATH=$(BIN_OUT_DIR) $(VALGRIND) \
+		--leak-check=full \
 		--show-leak-kinds=all \
 		--track-origins=yes \
 		--error-exitcode=1 \
 		$(BIN_OUT_DIR)/$(PROG)
+#******

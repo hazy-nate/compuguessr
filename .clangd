@@ -1,7 +1,25 @@
-
+#****h* config/.clangd
+# NAME
+#   .clangd
+#******
+---
 CompileFlags:
   CompilationDatabase: "."
-  Add: [-Iinclude, -Wall, -Wextra, -std=c11]
-  
+  Add:
+    - "-ffreestanding"
+    - "-Iinclude"
+    - "-nostdlib"
+    - "-std=c17"
+    - "-Wall"
+    - "-Wextra"
+    - "-xc"
+
 Diagnostics:
-  Suppress: ["empty-translation-unit"]
+  Suppress:
+    - "empty-translation-unit"
+
+Index:
+  External:
+    Exclude: [.*\.asm, .*\.s, .*\.S]
+
+# vim: set filetype=yaml :

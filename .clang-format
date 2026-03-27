@@ -1,23 +1,20 @@
 
+#****h* config/.clang-format
+# NAME
+#   .clang-format
+#******
+
 Language: C
 BasedOnStyle: LLVM
 
+AlwaysBreakAfterReturnType: TopLevelDefinitions
 ColumnLimit: 80
 SortIncludes: true
-AlignEscapedNewlines: Right
 
-# Indentation
-IndentWidth: 8
-UseTab: Always
-ContinuationIndentWidth: 4
-IndentCaseLabels: false
+#===============================================================================
+# BRACES
+#===============================================================================
 
-# Spaces
-SpaceBeforeParens: ControlStatements
-SpaceAroundPointerQualifiers: Default
-SpaceBeforeAssignmentOperators: true
-
-# Braces
 BreakBeforeBraces: Custom
 BraceWrapping:
   BeforeElse: false
@@ -27,8 +24,26 @@ BraceWrapping:
   AfterEnum: false
   AfterUnion: false
 
-# Function return type
-AlwaysBreakAfterReturnType: TopLevelDefinitions
+#===============================================================================
+# INDENTATION
+#===============================================================================
 
-# Casts
+ContinuationIndentWidth: 4
+IndentCaseLabels: false
+IndentWidth: 8
+UseTab: Always
+
+#===============================================================================
+# SPACING
+#===============================================================================
+
+AlignConsecutiveMacros:
+  Enabled: true
+  AcrossEmptyLines: true
+AlignEscapedNewlines: Right
 SpaceAfterCStyleCast: false
+SpaceAroundPointerQualifiers: Default
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeParens: ControlStatements
+
+# vim: set filetype=yaml :

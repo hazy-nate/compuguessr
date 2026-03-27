@@ -1,0 +1,17 @@
+# ****h* docker/compose.yml
+# NAME
+#   compose.yml
+# ******
+---
+services:
+  compuguessr-dev:
+    build:
+      context: .
+      target: builder
+    image: compuguessr-builder
+    user: "${UID}:${GID}"
+    volumes:
+      - ./:/app
+  compuguessr:
+    build:
+      context: .

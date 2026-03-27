@@ -1,1 +1,16 @@
-*
+
+#****h* config/.dockerignore
+# NAME
+#   .dockerignore
+#******
+
+.git/
+.github/
+
+build
+compile_commands.json
+
+docs/build/
+
+!Makefile
+!mk/

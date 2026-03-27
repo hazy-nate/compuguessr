@@ -1,0 +1,153 @@
+# SPDX-License-Identifier: GPL-2.0-only
+# Copyright (C) 2026 Nathaniel Williams
+
+#****h* config/.robodocrc
+# NAME
+#   .robodocrc
+# FUNCTION
+#   Controls the settings for ROBODoc.
+# NOTES
+#   To compile the documentation with ROBODoc for this project, run this command
+#   from the base directory of the project:
+#     $ robodoc --rc .robodocrc
+#******
+
+#===============================================================================
+# OPTIONS
+#===============================================================================
+
+options:
+#   --documenttitle CompuGuessr
+    --html
+    --index
+    --multidoc
+    --nopre
+    --no_subdirectories
+#   --one_file_per_header
+#   --sections
+#   --source_line_numbers
+    --syntaxcolors_enable quotes,squotes,line_comments,block_comments,keywords,non_alpha
+    --tabsize 8
+    --tell
+    --toc
+
+accept files:
+    .*
+    *.asm
+    *.c
+    *.h
+    *.inc
+    *.mk
+    *.py
+    Makefile
+
+ignore files:
+    .git*
+    .github*
+    .pytest_cache*
+    .vscode*
+    bin*
+    build*
+    dist*
+    docs*
+    scratch*
+    templates*
+
+#===============================================================================
+# ITEMS
+#===============================================================================
+
+items:
+    NAME
+    COPYRIGHT
+    SYNOPSIS
+    FUNCTION
+    AUTHOR
+    INPUTS
+    RESULT
+    EXAMPLE
+    NOTES
+    BUGS
+    SEE ALSO
+    SOURCE
+
+item order:
+    AUTHOR
+    COPYRIGHT
+    NAME
+    SYNOPSIS
+    FUNCTION
+    INPUTS
+    RESULT
+    EXAMPLE
+    NOTES
+    BUGS
+    SEE ALSO
+    SOURCE
+
+# format items:
+#     COPYRIGHT
+#     FUNCTION
+#     AUTHOR
+#     INPUTS
+#     RESULT
+#     NOTES
+#     BUGS
+
+preformatted items:
+    NAME
+    SYNOPSIS
+    EXAMPLE
+#     SEE ALSO
+#     SOURCE
+
+#===============================================================================
+# MARKERS
+#===============================================================================
+
+header markers:
+    ;;****
+    #****
+    # ****
+    "****
+    /****
+
+remark markers:
+    ;;
+    #
+    "
+    *
+    //
+
+end markers:
+    ;;******
+    #****
+    # ******
+    "****
+    ******
+    /******/
+
+#===============================================================================
+# HEADERS
+#===============================================================================
+
+headertypes:
+    c   "Class"         robo_classes
+    d   "Constants"     robo_constants
+    f   "Functions"     robo_functions
+    h   "Modules"       robo_modules
+    m   "Methods"       robo_methods
+    s   "Structures"    robo_structures
+    t   "Types"         robo_types
+    u   "Unit Tests"    robo_unit_tests
+    v   "Variables"     robo_variables
+    x   "Macros"        robo_macros
+
+header separate characters:
+    ,
+
+header ignore characters:
+    [
+
+# vim: set binary :
+# vim: set noreadonly :

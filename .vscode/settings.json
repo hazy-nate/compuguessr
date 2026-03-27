@@ -1,0 +1,54 @@
+{
+  "editor.rulers": [80],
+  "explicitFolding.rules": {
+    "*": [
+      {
+        "beginRegex": "^\\s*[;#/]*\\*\\*\\*\\*[a-z]\\*",
+        "endRegex": "^\\s*[;#/]*\\s+SOURCE\\b",
+      },
+      {
+        "separatorRegex": "^;={10,}",
+      },
+      {
+        "begin": "%ifdef",
+        "end": "%endif",
+      },
+      {
+        "begin": "%ifndef",
+        "end": "%endif",
+      },
+      {
+        "begin": "%macro",
+        "end": "%endmacro",
+      },
+      {
+        "begin": "struc",
+        "end": "endstruc",
+      },
+    ],
+  },
+  "files.associations": {
+    ".clang-format": "yaml",
+    ".clang-tidy": "yaml",
+    ".clangd": "yaml",
+    ".dockerignore": "ignore",
+    ".robodocrc": "ini",
+  },
+  "[c]": {
+    "editor.detectIndentation": false,
+    "editor.insertSpaces": false,
+    "editor.tabSize": 8,
+    "editor.wordWrap": "off",
+  },
+  "[cpp]": {
+    "editor.detectIndentation": false,
+    "editor.insertSpaces": false,
+    "editor.tabSize": 8,
+    "editor.wordWrap": "off",
+  },
+  "python.testing.pytestArgs": [
+    "test"
+  ],
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestEnabled": true,
+}

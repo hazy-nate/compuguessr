@@ -1,84 +1,166 @@
+# SPDX-License-Identifier: GPL-2.0-only
+# Copyright (C) 2026 Nathaniel Williams
 
-DOCS_SERVE_DIR 	= "$(DOCS_DIR)/_build/html"
-DOCS_SERVE_PORT = 8088
+#****h* make/docs.mk
+# NAME
+#   docs.mk
+#******
 
-.PHONY: docs docs-clean docs-serve
+#****d* make/docs.mk/ROBODOC_RC
+# NAME
+#   ROBODOC_RC
+# SOURCE
+ROBODOC_RC			= $(BASE_DIR)/.robodocrc
+#******
 
-docs: robodoc sphinx
+#***d* make/docs.mk/SPHINX_BUILD_DIR
+# NAME
+#   SPHINX_BUILD_DIR
+# SOURCE
+SPHINX_BUILD_DIR	= $(DOCS_DIR)/build
+#******
 
-docs-clean: robodoc-clean sphinx-clean
+#****d* make/docs.mk/SPHINX_SOURCE_DIR
+# NAME
+#   SPHINX_SOURCE_DIR
+# SOURCE
+SPHINX_SOURCE_DIR	= $(DOCS_DIR)/source
+#******
 
-docs-serve:
-	@python -m http.server -d $(DOCS_SERVE_DIR) $(DOCS_SERVE_PORT)
-
-ROBODOC_CSS = $(DOCS_DIR)/robodoc-modern.css
-ROBODOC_DIR = $(DOCS_DIR)/_build/html/robodoc
-ROBODOC_RC	= $(BASE_DIR)/robodoc.rc
-
-.PHONY: robodoc robodoc-clean robodoc-serve
-
-robodoc-serve: robodoc
-	@python -m http.server -d $(ROBODOC_DIR) 8081
-
-robodoc: robodoc-clean
-	@mkdir -p $(ROBODOC_DIR)
-	@robodoc --css $(ROBODOC_CSS) --doc $(ROBODOC_DIR) --rc $(ROBODOC_RC) --src .
-	@find $(ROBODOC_DIR) -type f -name "*.html" -exec sed -i 's/<pre> /<pre>/g' {} +
-	@find $(ROBODOC_DIR) -type f -name "*.html" -exec sed -i '/<pre>/,/<\/pre>/ s/^ //' {} +
-	@find $(ROBODOC_DIR) -type f -name "*.html" -exec sed -i 's/\\\\/<br>/g' {} +
-
-robodoc-clean:
-	@rm -rf $(ROBODOC_DIR)/*
-
-SPHINX_BUILD_DIR	= $(DOCS_DIR)/_build
-SPHINX_SOURCE_DIR	= $(DOCS_DIR)
+#****d* make/docs.mk/SPHINX_GEN_DIR
+# NAME
+#   SPHINX_GEN_DIR
+# SOURCE
 SPHINX_GEN_DIR 		= $(SPHINX_SOURCE_DIR)/generated
-SPHINX_API_RST		= $(SPHINX_SOURCE_DIR)/api_reference.rst
+#******
 
-.PHONY: sphinx sphinx-clean sphinx-html
+#****d* make/docs.mk/ROBODOC_CSS
+# NAME
+#   ROBODOC_CSS
+# SOURCE
+ROBODOC_CSS 		= $(SPHINX_SOURCE_DIR)/robodoc.css
+#******
 
+#****d* make/docs.mk/ROBODOC_DIR
+# NAME
+#   ROBODOC_DIR
+# SOURCE
+ROBODOC_DIR 		= $(SPHINX_BUILD_DIR)/html/robodoc
+#******
+
+#****d* make/docs.mk/DOCS_SERVE_DIR
+# NAME
+#   DOCS_SERVE_DIR
+# SOURCE
+DOCS_SERVE_DIR 		= "$(DOCS_DIR)/build/html"
+#******
+
+#****d* make/docs.mk/DOCS_SERVE_PORT
+# NAME
+#   DOCS_SERVE_PORT
+# SOURCE
+DOCS_SERVE_PORT 	= 8088
+#******
+
+.PHONY: docs docs-clean docs-serve \
+		robodoc robodoc-clean robodoc-serve \
+		sphinx sphinx-clean sphinx-html
+
+#===============================================================================
+# DOCS
+#===============================================================================
+
+#****f* make/docs.mk/docs
+# NAME
+#   docs
+# SOURCE
+docs: robodoc sphinx
+#******
+
+#****f* make/docs.mk/docs-clean
+# NAME
+#   docs-clean
+# SOURCE
+docs-clean: robodoc-clean sphinx-clean
+#******
+
+#****f* make/docs.mk/docs-serve
+# NAME
+#   docs-serve
+# SOURCE
+docs-serve:
+	@printf "$(YELLOW)$(BOLD)SERVE$(RESET)    $(YELLOW)Docs on port $(DOCS_SERVE_PORT)$(RESET)\n"
+	$(Q)python -m http.server -d $(DOCS_SERVE_DIR) $(DOCS_SERVE_PORT)
+#******
+
+#===============================================================================
+# ROBODOC
+#===============================================================================
+
+#****f* make/docs.mk/robodoc
+# NAME
+#   robodoc
+# SOURCE
+robodoc: robodoc-clean
+	@printf "$(BLUE)$(BOLD)DOCS$(RESET)     $(BLUE)Generating Robodoc...$(RESET)\n"
+	$(Q)mkdir -p $(ROBODOC_DIR)
+	$(Q)robodoc --css $(ROBODOC_CSS) --doc $(ROBODOC_DIR) --rc $(ROBODOC_RC) --src .
+	$(Q)find $(ROBODOC_DIR) -type f -name "*.html" -exec python3 docs/clean_docs.py {} +
+#******
+
+#****f* make/docs.mk/robodoc-clean
+# NAME
+#   robodoc-clean
+# SOURCE
+robodoc-clean:
+	@printf "$(RED)$(BOLD)CLEAN$(RESET)    $(RED)$(call relpath,$(ROBODOC_DIR))$(RESET)\n"
+	$(Q)rm -rf $(ROBODOC_DIR)
+#******
+
+#****f* make/docs.mk/robodoc-serve
+# NAME
+#   robodoc-serve
+# SOURCE
+robodoc-serve: robodoc
+	@printf "$(YELLOW)$(BOLD)SERVE$(RESET)    $(YELLOW)Robodoc on port 8081$(RESET)\n"
+	$(Q)python -m http.server -d $(ROBODOC_DIR) $(DOCS_SERVE_PORT)
+#******
+
+#===============================================================================
+# SPHINX
+#===============================================================================
+
+#****f* make/docs.mk/sphinx
+# NAME
+#   sphinx
+# SOURCE
 sphinx: sphinx-html sphinx-pdf
+#******
 
-$(SPHINX_API_RST): $(INC_SRCS) $(ASM_SRCS)
-	@mkdir -p $(SPHINX_GEN_DIR)
-	@echo "API Reference" > $@
-	@echo "=============" >> $@
-	@echo "" >> $@
-	@echo ".. toctree::" >> $@
-	@echo "   :maxdepth: 2" >> $@
-	@echo "" >> $@
-	@for file in $^; do \
-		ABS_FILE=$$(readlink -f "$$file"); \
-		FILENAME=$$(basename "$$ABS_FILE"); \
-		BASENAME=$${FILENAME%.*}; \
-		OUT_RST="$(SPHINX_GEN_DIR)/$$BASENAME.rst"; \
-		ABS_GEN_DIR=$$(readlink -f "$(SPHINX_GEN_DIR)"); \
-		REL_PATH=$$(realpath --relative-to="$$ABS_GEN_DIR" "$$ABS_FILE"); \
-		echo "Generating $$OUT_RST (Source: $$REL_PATH)"; \
-		echo "$$BASENAME" > "$$OUT_RST"; \
-		echo "========================================" >> "$$OUT_RST"; \
-		echo "" >> "$$OUT_RST"; \
-		TAGS=$$(grep -oP '\[\K[^\]]*(?=_DOCSTART)' "$$ABS_FILE"); \
-		for tag in $$TAGS; do \
-			TITLE=$${tag//_/ }; \
-			echo "$$TITLE" >> "$$OUT_RST"; \
-			echo "----------------------------------------" >> "$$OUT_RST"; \
-			echo ".. literalinclude:: $$REL_PATH" >> "$$OUT_RST"; \
-			echo "   :start-after: [$$tag""_DOCSTART]" >> "$$OUT_RST"; \
-			echo "   :end-before: [$$tag""_DOCEND]" >> "$$OUT_RST"; \
-			echo "   :language: nasm" >> "$$OUT_RST"; \
-			echo "" >> "$$OUT_RST"; \
-		done; \
-		echo "   generated/$$BASENAME" >> $@; \
-	done
+#****f* make/docs.mk/sphinx-html
+# NAME
+#   sphinx-html
+# SOURCE
+sphinx-html:
+	@printf "$(BLUE)$(BOLD)DOCS$(RESET)     $(BLUE)Generating Sphinx HTML...$(RESET)\n"
+	$(Q)sphinx-build -M html "$(SPHINX_SOURCE_DIR)" "$(SPHINX_BUILD_DIR)"
+#******
 
-sphinx-html: $(SPHINX_API_RST)
-	@sphinx-build -M html "$(SPHINX_SOURCE_DIR)" "$(SPHINX_BUILD_DIR)"
+#****f* make/docs.mk/sphinx-pdf
+# NAME
+#   sphinx-pdf
+# SOURCE
+sphinx-pdf:
+	@printf "$(BLUE)$(BOLD)DOCS$(RESET)     $(BLUE)Generating Sphinx PDF...$(RESET)\n"
+	$(Q)sphinx-build -M latexpdf "$(SPHINX_SOURCE_DIR)" "$(SPHINX_BUILD_DIR)"
+#******
 
-sphinx-pdf: $(SPHINX_API_RST)
-	@sphinx-build -M latexpdf "$(SPHINX_SOURCE_DIR)" "$(SPHINX_BUILD_DIR)"
-
+#****f* make/docs.mk/sphinx-clean
+# NAME
+#   sphinx-clean
+# SOURCE
 sphinx-clean:
-	@rm -rf $(SPHINX_BUILD_DIR)/*
-	@rm -rf $(SPHINX_GEN_DIR)/*
-	@rm -rf $(SPHINX_API_RST)
+	@printf "$(RED)$(BOLD)CLEAN$(RESET)    $(RED)$(call relpath,$(SPHINX_BUILD_DIR))$(RESET)\n"
+	$(Q)rm -rf $(SPHINX_BUILD_DIR)
+	$(Q)rm -rf $(SPHINX_GEN_DIR)
+#******

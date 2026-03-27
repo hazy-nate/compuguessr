@@ -1,6 +1,17 @@
+# SPDX-License-Identifier: GPL-2.0-only
+# Copyright (C) 2026 Nathaniel Williams
+
+#****h* make/logo.mk
+# NAME
+#   logo.mk
+#******
 
 -include mk/formatting.mk
 
+#****d* mk/logo.mk/LOGO
+# NAME
+#   LOGO
+# SOURCE
 define LOGO
 
    (                             (
@@ -13,4 +24,6 @@ define LOGO
                     |_|
 
 endef
+#******
+
 export LOGO

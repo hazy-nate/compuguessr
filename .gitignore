@@ -1,7 +1,18 @@
-bin
-build
-.cache
+
+#****h* config/gitignore
+# NAME
+# .gitignore
+#******
+
+__pycache__/
+.cache/
+.env
+.pytest_cache/
+bin/
+build/
 compile_commands.json
-docs/_build
-docs/generated
-docs/robodoc
+dist/
+docs/_build/
+docs/generated/
+docs/robodoc/
+scratch

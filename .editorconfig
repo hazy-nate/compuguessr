@@ -1,4 +1,11 @@
 
+#****h* config/.editorconfig
+# NAME
+#   .editorconfig
+# FUNCTION
+#   Defines settings for maintaining the style described in the style guide.
+#******
+
 root = true
 
 [*]
@@ -7,15 +14,41 @@ end_of_line = lf
 insert_final_newline = true
 trim_trailing_whitespace = true
 
-[*.{c,h,S}]
+#===============================================================================
+# ASSEMBLY AND C STYLE
+#===============================================================================
+
+[*.{asm,c,h,inc,S}]
+indent_size = 4
 indent_style = tab
-indent_size = 8
 tab_width = 8
 max_line_length = 80
 
-[*.{md,yml,yaml}]
+[*.{asm,inc,S}]
+indent_style = space
+
+[*.{c,h}]
+indent_style = tab
+
+#===============================================================================
+# DATA AND MARKDOWN
+#===============================================================================
+
+[*.{json,md,yml,yaml}]
 indent_style = space
 indent_size = 2
 
+#===============================================================================
+# MAKE
+#===============================================================================
+
 [Makefile,*.mk]
 indent_style = tab
+
+#===============================================================================
+# RESTRUCTURED TEXT
+#===============================================================================
+
+[*.rst]
+indent_style = space
+indent_size = 3

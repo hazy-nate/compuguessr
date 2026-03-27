@@ -1,4 +1,9 @@
 
+#****h* config/.clang-tidy
+# NAME
+#   .clang-tidy
+#******
+
 Checks: >
   -*,
   clang-analyzer-*,
@@ -14,3 +19,5 @@ Checks: >
 WarningsAsErrors: '*'
 
 FormatStyle: none
+
+# vim: set filetype=yaml :
