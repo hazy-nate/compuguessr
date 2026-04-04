@@ -127,6 +127,30 @@ cg_uring_cq_peek(struct cg_uring_ctx *ctx)
 	return &cqes[head & mask];
 }
 
+int
+cg_uring_cqe_wait(struct cg_uring_ctx *ctx, struct io_uring_cqe **cqe_out)
+{
+	struct io_uring_cqe *cqe;
+	cqe = cg_uring_cq_peek(ctx);
+	if (cqe) {
+		*cqe_out = cqe;
+		return 0;
+	}
+	long ret = syscall6(SYS_io_uring_enter, (long)ctx->fd, 0, 1,
+			    IORING_ENTER_GETEVENTS, 0, 0);
+	if (ret < 0) {
+		*cqe_out = 0;
+		return (int)ret;
+	}
+	cqe = cg_uring_cq_peek(ctx);
+	if (!cqe) {
+		*cqe_out = 0;
+		return -1;
+	}
+	*cqe_out = cqe;
+	return 0;
+}
+
 void
 cg_uring_cq_discard(struct cg_uring_ctx *ctx, int count)
 {

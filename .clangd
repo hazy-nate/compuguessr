@@ -1,7 +1,7 @@
-#****h* config/.clangd
+# ****h* config/.clangd
 # NAME
 #   .clangd
-#******
+# ******
 ---
 CompileFlags:
   CompilationDatabase: "."
@@ -20,6 +20,6 @@ Diagnostics:
 
 Index:
   External:
-    Exclude: [.*\.asm, .*\.s, .*\.S]
+    File: ".clangd/index"
 
 # vim: set filetype=yaml :

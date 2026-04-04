@@ -1,9 +1,9 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /* Copyright (C) 2026 Nathaniel Williams */
 
-/****h* sys/cg_io_uring.h
+/****h* sys/cg_uring.h, sys/cg_uring
  * NAME
- *   cg_io_uring.h
+ *   cg_uring.h
  ******/
 
 #ifndef CG_URING_H
@@ -30,6 +30,7 @@ struct cg_uring_ctx {
 	struct {
 		union cg_ptr ring;
 		union cg_ptr tail;
+		union cg_ptr tail_local;
 		union cg_ptr ring_mask;
 		union cg_ptr flags;
 		union cg_ptr array;
@@ -53,6 +54,7 @@ int cg_uring_init(struct cg_uring_ctx *, int);
 struct io_uring_sqe *cg_uring_sqe_init(struct cg_uring_ctx *, int);
 int cg_uring_sq_enqueue(struct cg_uring_ctx *, int);
 struct io_uring_cqe *cg_uring_cq_peek(struct cg_uring_ctx *);
+int cg_uring_cqe_wait(struct cg_uring_ctx *, struct io_uring_cqe **);
 void cg_uring_cq_discard(struct cg_uring_ctx *, int);
 
 #endif /* !CG_URING_H */

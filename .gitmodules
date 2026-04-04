@@ -1,0 +1,7 @@
+[submodule "external/robodoc"]
+	path = external/robodoc
+	url = https://github.com/gumpu/ROBODoc.git
+[submodule "vendor/make-starter"]
+	path = vendor/make-starter
+	url = git://natewilliams.xyz/make-starter.git
+	branch = feature/initial-version

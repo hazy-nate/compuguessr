@@ -1,17 +1,48 @@
+# SPDX-License-Identifier: GPL-2.0-only
+# Copyright (C) 2026 Nathaniel Williams
+
 # ****h* docker/compose.yml
 # NAME
 #   compose.yml
+# FUNCTION
+#   Defines isolated service environments matching the multi-stage Dockerfile.
 # ******
 ---
 services:
-  compuguessr-dev:
+  compuguessr-dev-native:
     build:
       context: .
-      target: builder
-    image: compuguessr-builder
-    user: "${UID}:${GID}"
+      target: native-builder
+    image: compuguessr-dev-native
+    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+    volumes:
+      - ./:/app
+  compuguessr-dev-emcc:
+    build:
+      context: .
+      target: emcc-builder
+    image: compuguessr-dev-emcc
+    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+    volumes:
+      - ./:/app
+  compuguessr-dev-docs:
+    build:
+      context: .
+      target: docs-builder
+    image: compuguessr-dev-docs
+    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+    volumes:
+      - ./:/app
+  compuguessr-dev-full:
+    build:
+      context: .
+      target: full-builder
+    image: compuguessr-dev-full
+    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     volumes:
       - ./:/app
   compuguessr:
     build:
       context: .
+      target: release
+    image: compuguessr

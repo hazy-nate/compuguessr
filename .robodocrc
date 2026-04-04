@@ -9,7 +9,7 @@
 # NOTES
 #   To compile the documentation with ROBODoc for this project, run this command
 #   from the base directory of the project:
-#     $ robodoc --rc .robodocrc
+#     robodoc --rc .robodocrc
 #******
 
 #===============================================================================
