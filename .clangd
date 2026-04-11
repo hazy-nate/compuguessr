@@ -9,7 +9,7 @@ CompileFlags:
     - "-ffreestanding"
     - "-Iinclude"
     - "-nostdlib"
-    - "-std=c17"
+    - "-std=c23"
     - "-Wall"
     - "-Wextra"
     - "-xc"

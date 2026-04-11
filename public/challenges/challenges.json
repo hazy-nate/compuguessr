@@ -1,0 +1,40 @@
+{
+  "version": "1.1",
+  "challenges": [
+    {
+      "id": "instruction_001",
+      "type": "instruction",
+      "difficulty": "easy",
+      "title": "Hello, world!",
+      "description": "Basic syscalls.",
+      "codeblock": [
+        "mov rax, 1",
+        "syscall"
+      ],
+      "questions": [
+        {
+          "id": 1,
+          "question": "What is the output?",
+          "type": "text",
+          "points": 25
+        },
+        {
+          "id": 2,
+          "question": "What platform?",
+          "type": "multiple_response",
+          "points": 25,
+          "responses": [
+            {
+              "id": 1,
+              "text": "Windows"
+            },
+            {
+              "id": 2,
+              "text": "Linux"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

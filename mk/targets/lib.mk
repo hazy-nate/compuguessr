@@ -15,7 +15,7 @@ $(LIB)_LDFLAGS	:= -shared -Bsymbolic
 $(LIB)_LDLIBS	:=
 $(LIB)_DEPS		:=
 
-LIB_OUT := $(BIN_OUT_DIR)/$(LIB)
+$(LIB)_OUT := $(BIN_OUT_DIR)/$(LIB)
 
 .PHONY: lib
 

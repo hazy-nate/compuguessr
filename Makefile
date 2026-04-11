@@ -50,15 +50,15 @@ MAKE_STARTER_DIR := $(VENDOR_DIR)/make-starter
 
 C_STD		:= c23
 CFLAGS		?= -std=$(C_STD) -Wall -Wcast-align -Wextra -Wformat=2 -Wpedantic \
-               -Wpointer-arith -Wstrict-prototypes -Wshadow -ffreestanding \
-               -fno-builtin -fno-stack-protector
-CFLAGS		+= $(shell pkg-config --cflags libpq)
+			   -Wpointer-arith -Wstrict-prototypes -Wshadow -ffreestanding \
+			   -fno-builtin -fno-stack-protector
+CFLAGS		+=
 CPPFLAGS	?=
 CXXFLAGS	?=
 ASFLAGS		?= -f elf64 -w+macro-params -w+number-overflow -w+orphan-labels
 NIMFLAGS	?= -d:danger --mm:arc --opt:size --passC:-fno-stack-protector
 LDFLAGS		?= -m elf_x86_64 -nostdlib
-LDLIBS		?= $(shell pkg-config --libs libpq)
+LDLIBS		?=
 ARFLAGS		?= rcs
 
 #===============================================================================

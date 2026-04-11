@@ -25,9 +25,14 @@ DOCKER_SVC_DOCS		:= compuguessr-dev-docs
 DOCKER_SVC_FULL		:= compuguessr-dev-full
 DOCKER_SVC_RELEASE	:= compuguessr
 
-.PHONY: docker-release docker-setup
+.PHONY: docker-clean docker-release docker-setup
+
+docker-clean:
+	$(call PRINT_ACTION,$(RED),DOCKER RM,Images)
+	$(Q)$(DOCKER_BIN) image rm $$($(DOCKER_BIN) images -q --filter "label=project=compuguessr") -f 2>/dev/null || true
 
 docker-release: docker-setup
+	$(call PRINT_ACTION,$(BLUE),DOCKER BUILD,Release image)
 	@printf "Building production release image...\n"
 	$(Q)$(DOCKER_COMPOSE) build $(DOCKER_SVC_RELEASE)
 

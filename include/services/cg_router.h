@@ -1,55 +1,32 @@
+#ifndef CG_ROUTER_H
+#define CG_ROUTER_H
+
 /* SPDX-License-Identifier: GPL-2.0-only */
 /* Copyright (C) 2026 Nathaniel Williams */
 
-/****h* sys/cg_types.h
+/****h* services/cg_router.h, services/cg_router
  * NAME
- *   cg_types.h
+ *   cg_router.h
  ******/
 
-#ifndef CG_TYPES_H
-#define CG_TYPES_H
+/*==============================================================================
+ * LOCAL HEADERS
+ *============================================================================*/
 
-#include <stdint.h>
+#include "core/cg_client.h"
+#include "data/cg_hashmap.h"
 
 /*==============================================================================
  * TYPEDEFS
  *============================================================================*/
 
-/****s* cg_types/cg_size_t
- * NAME
- *   cg_size_t
- * SOURCE
- */
-typedef __SIZE_TYPE__ cg_size_t;
-/******/
-
-typedef void (*cg_generic_func_t)(void);
+typedef void (*cg_route_func_t)(struct cg_client_ctx *cli_ctx);
 
 /*==============================================================================
- * UNIONS
+ * FUNCTION PROTOTYPES
  *============================================================================*/
 
-/****s* cg_types/cg_ptr
- * NAME
- *   cg_ptr
- * SOURCE
- */
-union cg_ptr {
-	long addr;
-	void *ptr;
-	cg_generic_func_t func_ptr;
-};
-/******/
+void cg_route_map_init(struct cg_hashmap *);
+void cg_route_map_reply(struct cg_hashmap *, struct cg_client_ctx *);
 
-/*==============================================================================
- * STRUCTS
- *============================================================================*/
-
-struct cg_buffer_metadata {
-	uint8_t *buf;
-	uint32_t len;
-	uint32_t valid;
-	uint32_t pos;
-};
-
-#endif /* !CG_TYPES_H */
+#endif /* !CG_ROUTER_H */

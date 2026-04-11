@@ -1,4 +1,3 @@
-#!/bin/bash
+#!/bin/sh
 
 lighttpd -D -f scripts/lighttpd.conf
-

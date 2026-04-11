@@ -12,6 +12,8 @@
 
 FROM archlinux:latest AS native-builder
 
+LABEL project="compuguessr"
+
 RUN pacman -Syu --noconfirm && \
     pacman -S --noconfirm \
     base-devel \
