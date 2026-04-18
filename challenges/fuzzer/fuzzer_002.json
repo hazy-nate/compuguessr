@@ -1,0 +1,41 @@
+{
+  "id": "fuzzer_002",
+  "type": "fuzzer",
+  "difficulty": "easy",
+  "title": "The Format",
+  "description": "A very permissive print statement.",
+  "codeblock": [
+    "void log_message(char *user_controlled_input) {",
+    "    printf(user_controlled_input);",
+    "}"
+  ],
+  "questions": [
+    {
+      "id": 1,
+      "question": "What type of vulnerability is present here?",
+      "type": "multiple_choice",
+      "points": 25,
+      "responses": [
+        { "id": 1, "text": "Buffer Overflow" },
+        { "id": 2, "text": "Format String Vulnerability" },
+        { "id": 3, "text": "SQL Injection" }
+      ],
+      "answer": {
+        "type": "single",
+        "value": 2,
+        "explanation": "Passing user input directly as the format string argument allows an attacker to use specifiers like %x or %n to read/write memory."
+      }
+    },
+    {
+      "id": 2,
+      "question": "What format specifier could an attacker use to read memory off the stack?",
+      "type": "text",
+      "points": 25,
+      "answer": {
+        "type": "text",
+        "value": "%x",
+        "explanation": "%x or %p will pop arguments off the stack and print them."
+      }
+    }
+  ]
+}

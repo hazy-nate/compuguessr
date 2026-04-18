@@ -1,6 +1,3 @@
-/* SPDX-License-Identifier: GPL-2.0-only */
-/* Copyright (C) 2026 Nathaniel Williams */
-
 #include <sys/syscall.h>
 #include <unistd.h>
 
@@ -10,8 +7,8 @@
 void
 cg_client_pool_init(struct cg_client_ctx *cli_ctx_pool, int count)
 {
-	// cg_memset_avx2(cli_ctx_pool, 0, sizeof(*cli_ctx_pool) * count);
 	for (int i = 0; i < count; i++) {
+		cli_ctx_pool[i].state = CG_CLIENT_STATE_FREE;
 		cg_fastcgi_client_init(&cli_ctx_pool[i].fcgi_cli_ctx);
 	}
 }

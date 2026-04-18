@@ -74,6 +74,7 @@ cg_fastcgi_handle_begin_request(struct cg_client_req *req, struct cg_fastcgi_hea
 	req->req_id = hdr->request_id.value;
 	req->stdin_len = 0;
 	req->stdin_buf[0] = '\0';
+	req->session_id[0] = '\0';
 }
 
 static void
@@ -104,6 +105,23 @@ cg_fastcgi_handle_params(struct cg_client_req *req, uint8_t *payload, uint16_t c
 			uint32_t clen = (v_len < 15) ? v_len : 15;
 			cg_memcpy_avx2(req->method, val, (int)clen);
 			req->method[clen] = '\0';
+		} else if (n_len == 11 && cg_memcmp_avx2(name, "HTTP_COOKIE", 11) == 0) {
+			char *cookie = (char *)val;
+			for (uint32_t i = 0; i < v_len; i++) {
+				if (v_len - i >= 8 && cg_memcmp_avx2(cookie + i, "SESSION=", 8) == 0) {
+					uint32_t j = i + 8;
+					while (j < v_len && cookie[j] != ';') {
+						j++;
+					}
+					uint32_t clen = j - (i + 8);
+					if (clen > 31) {
+						clen = 31;
+					}
+					cg_memcpy_avx2(req->session_id, cookie + i + 8, (int)clen);
+					req->session_id[clen] = '\0';
+					break;
+				}
+			}
 		}
 	}
 }

@@ -2,13 +2,61 @@
 #include <stdint.h>
 #include "data/cg_challengedb_data.h"
 
+static const struct cg_question q_fuzzer_001[] = {
+    { .id = 1, .points = 25, .type = CG_ANS_TEXT, .answer.text_answer = "strcpy", .explanation = "strcpy() does not check the size of the destination buffer, making it dangerous when handling external input." },
+    { .id = 2, .points = 25, .type = CG_ANS_SINGLE, .answer.numeric_answer = 3, .explanation = "If 'input' is longer than 32 bytes, it will overwrite adjacent memory on the stack." },
+};
+
+static const struct cg_question q_fuzzer_002[] = {
+    { .id = 1, .points = 25, .type = CG_ANS_SINGLE, .answer.numeric_answer = 2, .explanation = "Passing user input directly as the format string argument allows an attacker to use specifiers like %x or %n to read/write memory." },
+    { .id = 2, .points = 25, .type = CG_ANS_TEXT, .answer.text_answer = "%x", .explanation = "%x or %p will pop arguments off the stack and print them." },
+};
+
+static const struct cg_question q_fuzzer_003[] = {
+    { .id = 1, .points = 25, .type = CG_ANS_TEXT, .answer.text_answer = "Use-After-Free", .explanation = "The 'node' pointer is dereferenced to check 'has_next' after it has already been passed to free()." },
+    { .id = 2, .points = 25, .type = CG_ANS_TEXT, .answer.text_answer = "3", .explanation = "Line 3 (if (node->has_next)) dereferences the freed pointer." },
+};
+
 static const struct cg_question q_instruction_001[] = {
     { .id = 1, .points = 25, .type = CG_ANS_TEXT, .answer.text_answer = "Hello, world!", .explanation = "The rax=1 syscall is 'sys_write', which prints our string to STDOUT." },
     { .id = 2, .points = 25, .type = CG_ANS_BITMASK, .answer.numeric_answer = 2, .explanation = "[Windows]: Incorrect. Windows uses the NT kernel API, not Linux syscall numbers.\\n[Linux]: Correct. Syscalls 1 (write) and 60 (exit) match the x86_64 Linux ABI." },
 };
 
-const struct cg_challengedb g_challengedb[] = {
-    { .id_string = "instruction_001", .total_points = 50, .question_count = 2, .questions = q_instruction_001 },
+static const struct cg_question q_instruction_002[] = {
+    { .id = 1, .points = 25, .type = CG_ANS_TEXT, .answer.text_answer = "0", .explanation = "XORing a register with itself always results in 0." },
+    { .id = 2, .points = 25, .type = CG_ANS_SINGLE, .answer.numeric_answer = 3, .explanation = "xor reg, reg is both smaller in binary encoding and clears the CPU's dependency chain while setting the Zero Flag." },
 };
 
-const uint32_t g_challengedb_size = 1;
+static const struct cg_question q_instruction_003[] = {
+    { .id = 1, .points = 25, .type = CG_ANS_TEXT, .answer.text_answer = "32", .explanation = "0x20 in hexadecimal is 32 in decimal." },
+    { .id = 2, .points = 25, .type = CG_ANS_BITMASK, .answer.numeric_answer = 3, .explanation = "The base pointer (rbp) and stack pointer (rsp) are both updated. rax is untouched." },
+};
+
+static const struct cg_question q_protocol_001[] = {
+    { .id = 1, .points = 25, .type = CG_ANS_TEXT, .answer.text_answer = "HTTP", .explanation = "The hex bytes 47 45 54 translate to the ASCII string 'GET', the primary method of the Hypertext Transfer Protocol." },
+    { .id = 2, .points = 25, .type = CG_ANS_SINGLE, .answer.numeric_answer = 2, .explanation = "Port 80 is the default port for unencrypted HTTP traffic." },
+};
+
+static const struct cg_question q_protocol_002[] = {
+    { .id = 1, .points = 25, .type = CG_ANS_TEXT, .answer.text_answer = "SSH", .explanation = "The hex translates to 'SSH-2.0-OpenSSH_8.9p1 Ubuntu'." },
+    { .id = 2, .points = 25, .type = CG_ANS_TEXT, .answer.text_answer = "22", .explanation = "SSH runs on port 22 by default." },
+};
+
+static const struct cg_question q_protocol_003[] = {
+    { .id = 1, .points = 25, .type = CG_ANS_TEXT, .answer.text_answer = "DNS", .explanation = "The Domain Name System (DNS) operates on port 53 and resolves hostnames to IPs." },
+    { .id = 2, .points = 25, .type = CG_ANS_BITMASK, .answer.numeric_answer = 3, .explanation = "A and TXT are DNS records. GET is an HTTP method." },
+};
+
+const struct cg_challengedb g_challengedb[] = {
+    { .id_string = "fuzzer_001", .total_points = 50, .question_count = 2, .questions = q_fuzzer_001 },
+    { .id_string = "fuzzer_002", .total_points = 50, .question_count = 2, .questions = q_fuzzer_002 },
+    { .id_string = "fuzzer_003", .total_points = 50, .question_count = 2, .questions = q_fuzzer_003 },
+    { .id_string = "instruction_001", .total_points = 50, .question_count = 2, .questions = q_instruction_001 },
+    { .id_string = "instruction_002", .total_points = 50, .question_count = 2, .questions = q_instruction_002 },
+    { .id_string = "instruction_003", .total_points = 50, .question_count = 2, .questions = q_instruction_003 },
+    { .id_string = "protocol_001", .total_points = 50, .question_count = 2, .questions = q_protocol_001 },
+    { .id_string = "protocol_002", .total_points = 50, .question_count = 2, .questions = q_protocol_002 },
+    { .id_string = "protocol_003", .total_points = 50, .question_count = 2, .questions = q_protocol_003 },
+};
+
+const uint32_t g_challengedb_size = 9;

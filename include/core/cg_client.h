@@ -4,11 +4,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /* Copyright (C) 2026 Nathaniel Williams */
 
-/****h* core/cg_client.h, core/cg_client
- * NAME
- *   cg_client.h
- ******/
-
 /*==============================================================================
  * SYSTEM HEADERS
  *============================================================================*/
@@ -47,6 +42,7 @@ enum cg_client_state {
 struct cg_client_req {
 	alignas(8) char uri[CG_MAX_URI_LEN];
 	alignas(8) char method[CG_MAX_METHOD_LEN];
+	alignas(8) char session_id[32];
 	uint16_t req_id;
 	uint8_t keep_alive;
 	uint32_t stdin_len;

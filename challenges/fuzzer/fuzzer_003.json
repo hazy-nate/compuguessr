@@ -1,0 +1,39 @@
+{
+  "id": "fuzzer_003",
+  "type": "fuzzer",
+  "difficulty": "medium",
+  "title": "Premature Evacuation",
+  "description": "Find the issue in this lifecycle.",
+  "codeblock": [
+    "void process_node(struct Node *node) {",
+    "    free(node);",
+    "    if (node->has_next) {",
+    "        process_node(node->next);",
+    "    }",
+    "}"
+  ],
+  "questions": [
+    {
+      "id": 1,
+      "question": "What is the name of this vulnerability?",
+      "type": "text",
+      "points": 25,
+      "answer": {
+        "type": "text",
+        "value": "Use-After-Free",
+        "explanation": "The 'node' pointer is dereferenced to check 'has_next' after it has already been passed to free()."
+      }
+    },
+    {
+      "id": 2,
+      "question": "Which line number contains the dangerous dereference?",
+      "type": "text",
+      "points": 25,
+      "answer": {
+        "type": "text",
+        "value": "3",
+        "explanation": "Line 3 (if (node->has_next)) dereferences the freed pointer."
+      }
+    }
+  ]
+}

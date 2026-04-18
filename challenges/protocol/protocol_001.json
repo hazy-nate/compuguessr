@@ -1,0 +1,40 @@
+{
+  "id": "protocol_001",
+  "type": "protocol",
+  "difficulty": "easy",
+  "title": "Port of Call",
+  "description": "Analyze this intercepted network stream.",
+  "codeblock": [
+    "47 45 54 20 2f 20 48 54 54 50 2f 31 2e 31 0d 0a",
+    "48 6f 73 74 3a 20 6c 6f 63 61 6c 68 6f 73 74 0d 0a"
+  ],
+  "questions": [
+    {
+      "id": 1,
+      "question": "What protocol is this stream utilizing?",
+      "type": "text",
+      "points": 25,
+      "answer": {
+        "type": "text",
+        "value": "HTTP",
+        "explanation": "The hex bytes 47 45 54 translate to the ASCII string 'GET', the primary method of the Hypertext Transfer Protocol."
+      }
+    },
+    {
+      "id": 2,
+      "question": "What is the standard port number for this protocol?",
+      "type": "multiple_choice",
+      "points": 25,
+      "responses": [
+        { "id": 1, "text": "21" },
+        { "id": 2, "text": "80" },
+        { "id": 3, "text": "443" }
+      ],
+      "answer": {
+        "type": "single",
+        "value": 2,
+        "explanation": "Port 80 is the default port for unencrypted HTTP traffic."
+      }
+    }
+  ]
+}

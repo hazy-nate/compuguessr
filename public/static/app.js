@@ -125,6 +125,16 @@ function renderMainMenu() {
     transitionView(MAIN_MENU_HTML);
 }
 
+function nextChallenge() {
+    const available = state.challenges.filter(c => c.type === state.config.category);
+    if (available.length === 0) {
+        renderMainMenu();
+        return;
+    }
+    state.currentChallenge = available[Math.floor(Math.random() * available.length)];
+    renderChallenge(state.currentChallenge);
+}
+
 function startGame(category) {
     state.config.category = category;
     history.pushState({ page: 'setup', category: category }, "", `#setup-${category}`);
@@ -154,11 +164,20 @@ function startGame(category) {
 async function launchGame(event) {
     event.preventDefault();
     state.config.playerName = document.getElementById('playerName').value || 'Anon';
+
     appDiv.innerHTML = `
         <div class="text-center py-5">
             <div class="spinner-border text-info mb-3" role="status"></div>
-            <h3 class="code-font text-muted">Fetching challenges...</h3>
+            <h3 class="code-font text-muted">Authenticating Session...</h3>
         </div>`;
+
+    try {
+        const authRes = await fetch('/api/auth/guest', { method: 'POST' });
+        if (!authRes.ok) throw new Error("Failed to authenticate session.");
+    } catch (err) {
+        console.warn("Auth failed, continuing in offline mode.", err);
+    }
+
     try {
         const res = await fetch('/challenges/challenges.json');
         if (!res.ok) throw new Error("Network response was not ok");
@@ -168,11 +187,13 @@ async function launchGame(event) {
         console.warn("Using mock DB. Server missing or CORS error.", err);
         state.challenges = MOCK_DB.challenges;
     }
+
     const available = state.challenges.filter(c => c.type === state.config.category);
     if (available.length === 0) {
         appDiv.innerHTML = `<div class="text-center py-5"><h3 class="text-danger">No Challenges Found</h3><p>Could not find any challenges for ${state.config.category}.</p><button onclick="renderMainMenu()" class="btn btn-outline-light">Return</button></div>`;
         return;
     }
+
     state.currentChallenge = available[Math.floor(Math.random() * available.length)];
     renderChallenge(state.currentChallenge);
 }
@@ -188,12 +209,15 @@ function renderChallenge(chal) {
                 </div>
                 <h2 class="fw-bold text-info mb-2">${chal.title}</h2>
                 <p class="text-light mb-4">${chal.description}</p>`;
+
     if (chal.codeblock && chal.codeblock.length > 0) {
         html += `<div class="bg-dark p-3 rounded mb-4" style="border-left: 3px solid #38bdf8; overflow-x: auto;">
                     <pre class="mb-0"><code class="code-font text-light" style="font-size: 0.9rem;">${chal.codeblock.join('\n')}</code></pre>
                  </div>`;
     }
+
     html += `<form id="submitForm" onsubmit="submitAnswers(event)">`;
+
     chal.questions.forEach((q, index) => {
         html += `<div class="mb-4 p-3 border border-secondary rounded" style="background: rgba(0,0,0,0.2);">
                     <div class="d-flex justify-content-between align-items-center mb-2">
@@ -215,7 +239,6 @@ function renderChallenge(chal) {
         } else if (q.type === 'multiple_response') {
             html += `<div class="mt-3">`;
             q.responses.forEach(r => {
-                // Notice the data-question attribute used for querying the bitmask later
                 html += `<div class="form-check mb-2">
                             <input class="form-check-input" type="checkbox" data-question="q${q.id}" id="q${q.id}_r${r.id}" value="${r.id}">
                             <label class="form-check-label code-font" for="q${q.id}_r${r.id}">${r.text}</label>
@@ -225,6 +248,7 @@ function renderChallenge(chal) {
         }
         html += `</div>`;
     });
+
     html += `   <div class="d-flex justify-content-between align-items-center mt-4">
                     <button type="button" class="btn btn-outline-secondary code-font" onclick="renderMainMenu()">Abort</button>
                     <button type="submit" class="btn btn-info fw-bold code-font px-5">Submit Payload &rarr;</button>
@@ -242,6 +266,7 @@ async function submitAnswers(event) {
     const form = event.target;
     const params = new URLSearchParams();
     params.append('id', state.currentChallenge.id);
+
     state.currentChallenge.questions.forEach(q => {
         if (q.type === 'text' || q.type === 'multiple_choice') {
             const el = form.elements[`q${q.id}`];
@@ -252,14 +277,12 @@ async function submitAnswers(event) {
             const checks = form.querySelectorAll(`input[data-question="q${q.id}"]:checked`);
             let bitmask = 0;
             checks.forEach(c => {
-                const shiftVal = parseInt(c.value, 10);
+                const shiftVal = parseInt(c.value, 10) - 1;
                 bitmask |= (1 << shiftVal);
             });
             params.append(`q${q.id}`, bitmask);
         }
     });
-
-    console.log("Submitting payload:", params.toString());
 
     appDiv.innerHTML = `
         <div class="text-center py-5">
@@ -269,15 +292,79 @@ async function submitAnswers(event) {
         </div>`;
 
     try {
-        const response = await fetch('/api/submit', {
+        const response = await fetch('/api/challenge/verify', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: params.toString()
         });
 
         const result = await response.json();
-        alert("Backend replied: " + JSON.stringify(result));
-        renderMainMenu();
+
+        if (!response.ok) {
+            let errorHtml = `
+                <div class="row justify-content-center py-5">
+                    <div class="col-md-6 text-center">
+                        <div class="glass-panel p-5 shadow-lg">
+                            <h2 class="text-danger fw-bold mb-3">Verification Failed</h2>
+                            <p class="lead text-light mb-4">${result.error || "An unknown error occurred."}</p>
+                            <button onclick="renderMainMenu()" class="btn btn-outline-info code-font px-4">Return to Main Menu</button>
+                        </div>
+                    </div>
+                </div>`;
+            transitionView(errorHtml);
+            return;
+        }
+
+        let headerText = "Partial Success";
+        let headerClass = "text-warning";
+
+        if (result.total_earned === result.max_points) {
+            headerText = "Challenge Mastered";
+            headerClass = "text-success";
+        } else if (result.total_earned === 0) {
+            headerText = "Incorrect";
+            headerClass = "text-danger";
+        }
+
+        let resultHtml = `
+            <div class="row justify-content-center py-5">
+                <div class="col-md-8">
+                    <div class="glass-panel p-4 p-md-5 shadow-lg">
+                        <h2 class="text-center ${headerClass} fw-bold mb-2">
+                            ${headerText}
+                        </h2>
+                        <h4 class="text-center text-light mb-4 code-font">Score: ${result.total_earned} / ${result.max_points}</h4>
+                        <div class="mb-5">`;
+
+        if (result.results && Array.isArray(result.results)) {
+            result.results.forEach(r => {
+                const isCorrect = r.correct === true || r.correct === "true";
+                resultHtml += `
+                    <div class="p-3 mb-3 rounded border ${isCorrect ? 'border-success' : 'border-danger'} bg-dark" style="background: rgba(0,0,0,0.3);">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <strong class="${isCorrect ? 'text-success' : 'text-danger'} code-font">
+                                Question ${r.id}: ${isCorrect ? 'CORRECT' : 'INCORRECT'}
+                            </strong>
+                            <span class="badge ${isCorrect ? 'bg-success' : 'bg-danger'}">${r.earned} pts</span>
+                        </div>
+                        <p class="mb-0 small text-secondary font-monospace">
+                            <span class="text-info">Explanation:</span> ${r.explanation}
+                        </p>
+                    </div>`;
+            });
+        }
+
+        resultHtml += `
+                        </div>
+                        <div class="d-flex justify-content-center gap-3">
+                            <button onclick="renderMainMenu()" class="btn btn-outline-info code-font px-4 fw-bold">Main Menu</button>
+                            <button onclick="nextChallenge()" class="btn btn-info code-font px-4 fw-bold">Next Challenge &rarr;</button>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+
+        transitionView(resultHtml);
 
     } catch (err) {
         console.error(err);

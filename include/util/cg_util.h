@@ -29,6 +29,10 @@ struct cg_ntoa_result {
 	long long len;
 };
 
+extern long g_base_addr;
+
+#define CG_RELOC(type, ptr) ((type)((long)(ptr) + g_base_addr))
+
 /*==============================================================================
  * FUNCTION PROTOTYPES
  *============================================================================*/

@@ -1,4 +1,3 @@
-
 #include <fcntl.h>
 #include <stdint.h>
 #include <sys/mman.h>
@@ -31,18 +30,23 @@ cg_sessiondb_init(const char *fp)
 	if (map.ptr == MAP_FAILED) {
 		return 0;
 	}
-	struct cg_sessiondb_header *hdr = (struct cg_sessiondb_header *)map.ptr;
+	struct cg_sessiondb *db = (struct cg_sessiondb *)map.ptr;
 	if (is_new) {
 		cg_memset_avx2(map.ptr, 0, CG_SESSIONDB_FILE_SIZE);
-		hdr->magic = CG_SESSIONDB_MAGIC_BYTES;
-		hdr->version = 1;
-		hdr->entry_count = CG_SESSIONDB_POOL_SIZE;
-		hdr->entry_size = sizeof(struct cg_sessiondb_entry);
-	} else if (hdr->magic != CG_SESSIONDB_MAGIC_BYTES) {
+		db->hdr.magic = CG_SESSIONDB_MAGIC_BYTES;
+		db->hdr.version = 1;
+		db->hdr.entry_count = 0;
+		db->hdr.entry_size = sizeof(struct cg_sessiondb_entry);
+	} else if (db->hdr.magic != CG_SESSIONDB_MAGIC_BYTES) {
 		syscall2(SYS_munmap, map.addr, CG_SESSIONDB_FILE_SIZE);
 		return 0;
 	}
-	return map.ptr;
+
+	/* Initialize volatile pointer for the hashmap mapped in memory */
+	db->map.entries = db->map_entries;
+	db->map.capacity = CG_SESSIONDB_POOL_SIZE;
+	db->map.count = db->hdr.entry_count;
+	return db;
 }
 
 uint64_t
@@ -69,16 +73,9 @@ cg_sessiondb_index_get(uint64_t sid)
 struct cg_sessiondb_entry *
 cg_sessiondb_entry_get(struct cg_sessiondb *db, uint64_t sid)
 {
-	uint32_t start_idx = cg_sessiondb_index_get(sid);
-	for (uint32_t i = 0; i < CG_SESSIONDB_POOL_SIZE; i++) {
-		uint32_t idx = (start_idx + i) & CG_SESSIONDB_MASK;
-		struct cg_sessiondb_entry *entry = &db->entries[idx];
-		if (!entry->is_active) {
-			return 0;
-		}
-		if (entry->session_id == sid) {
-			return entry;
-		}
+	struct cg_hashmap_entry *hentry = cg_hashmap_get_key_uint(&db->map, sid);
+	if (hentry && hentry->occupied) {
+		return &db->pool[hentry->val.addr];
 	}
 	return 0;
 }
@@ -86,34 +83,55 @@ cg_sessiondb_entry_get(struct cg_sessiondb *db, uint64_t sid)
 int
 cg_sessiondb_entry_create(struct cg_sessiondb *db, uint32_t uid, struct cg_sessiondb_entry *out)
 {
+	if (db->map.count >= CG_SESSIONDB_POOL_SIZE) {
+		return 1;
+	}
 	uint64_t sid = cg_sessiondb_session_id_get();
 	if (sid == 0) {
 		return 1;
 	}
-	uint64_t hash = cg_hash_uint64(sid);
-	uint32_t start_idx = hash & CG_SESSIONDB_MASK;
+
+	struct cg_sessiondb_entry *entry = 0;
+	uint32_t pool_idx = 0;
 	for (uint32_t i = 0; i < CG_SESSIONDB_POOL_SIZE; i++) {
-		uint32_t idx = (start_idx + i) & CG_SESSIONDB_MASK;
-		struct cg_sessiondb_entry *entry = &db->entries[idx];
-		uint8_t expected = 0;
-		if (__atomic_compare_exchange_n(&entry->is_active, &expected, 1,
-						false, __ATOMIC_SEQ_CST,
-						__ATOMIC_SEQ_CST)) {
-			entry->session_id = sid;
-			entry->user_id = uid;
-			entry->creation_timestamp = cg_time_get();
-			entry->last_seen_timestamp = entry->creation_timestamp;
-			entry->flags = 0;
-			cg_memcpy_avx2(out, entry, sizeof(struct cg_sessiondb_entry));
-			return 0;
+		if (!db->pool[i].is_active) {
+			uint8_t expected = 0;
+			if (__atomic_compare_exchange_n(&db->pool[i].is_active, &expected, 1,
+							false, __ATOMIC_SEQ_CST,
+							__ATOMIC_SEQ_CST)) {
+				entry = &db->pool[i];
+				pool_idx = i;
+				break;
+			}
 		}
 	}
-	return 1;
+
+	if (!entry) {
+		return 1;
+	}
+
+	entry->session_id = sid;
+	entry->user_id = uid;
+	entry->creation_timestamp = cg_time_get();
+	entry->last_seen_timestamp = entry->creation_timestamp;
+	entry->flags = 0;
+
+	union cg_ptr val;
+	val.addr = pool_idx;
+	cg_hashmap_insert_key_uint(&db->map, sid, val);
+	db->hdr.entry_count++;
+
+	cg_memcpy_avx2(out, entry, sizeof(struct cg_sessiondb_entry));
+	return 0;
 }
 
 void
 cg_sessiondb_entry_delete(struct cg_sessiondb *db, uint64_t sid)
 {
 	struct cg_sessiondb_entry *entry = cg_sessiondb_entry_get(db, sid);
-	cg_memset_avx2(entry, 0, sizeof(*entry));
+	if (entry) {
+		entry->is_active = 0;
+		cg_hashmap_delete_key_uint(&db->map, sid);
+		db->hdr.entry_count--;
+	}
 }

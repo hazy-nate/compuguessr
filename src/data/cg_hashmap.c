@@ -1,4 +1,3 @@
-
 #include <stdint.h>
 
 #include "data/cg_hashmap.h"
@@ -13,9 +12,9 @@ cg_hashmap_get_key_uint(struct cg_hashmap *map, uint64_t key)
         uint64_t hash = cg_hash_uint64(key);
         uint32_t mask = map->capacity - 1;
         uint32_t idx = (uint32_t)(hash & mask);
-        while (map->entries[idx].occupied) {
-                if (map->entries[idx].key == key) {
-                        return &map->entries[idx]; /* Found it */
+        while (map->entries[idx].occupied != 0) {
+                if (map->entries[idx].occupied == 1 && map->entries[idx].key == key) {
+                        return &map->entries[idx];
                 }
                 idx = (idx + 1) & mask;
         }
@@ -35,14 +34,17 @@ cg_hashmap_insert_key_uint(struct cg_hashmap *map, uint64_t key, union cg_ptr va
 	if (map->entries == 0) {
 		return;
 	}
+
+	struct cg_hashmap_entry *existing = cg_hashmap_get_key_uint(map, key);
+	if (existing) {
+		existing->val = val;
+		return;
+	}
+
 	uint64_t hash = cg_hash_uint64(key);
 	uint32_t mask = map->capacity - 1;
 	uint32_t idx = (uint32_t)(hash & mask);
-	while (map->entries[idx].occupied) {
-		if (map->entries[idx].key == key) {
-			map->entries[idx].val = val;
-			return;
-		}
+	while (map->entries[idx].occupied == 1) {
 		idx = (idx + 1) & mask;
 	}
 	map->entries[idx].key = key;
@@ -66,7 +68,7 @@ cg_hashmap_delete_key_uint(struct cg_hashmap *map, uint64_t key)
         }
         struct cg_hashmap_entry *entry = cg_hashmap_get_key_uint(map, key);
         if (entry) {
-                entry->occupied = 0;
+                entry->occupied = 2;
                 map->count--;
         }
 }

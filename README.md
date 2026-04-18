@@ -33,7 +33,7 @@ sudo emerge -av app-containers/docker \
 ```
 
 ```bash
-git clone git@natewilliams.xyz:compuguessr.git
+git clone --recurse-submodules git@natewilliams.xyz:compuguessr.git
 cd compuguessr
 make docker-build-dev
 make docker-make
@@ -51,7 +51,7 @@ The build process for the CompuGuessr executable depends on these programs:
 - **Builder:** `make`
 
 ```bash
-git clone git@natewilliams.xyz:compuguessr.git
+git clone --recurse-submodules git@natewilliams.xyz:compuguessr.git
 cd compuguessr
 make
 ```

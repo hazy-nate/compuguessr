@@ -8,8 +8,23 @@
       "title": "Hello, world!",
       "description": "Basic syscalls.",
       "codeblock": [
-        "mov rax, 1",
-        "syscall"
+        "section .data",
+        "msg     db \"Hello, world!\"",
+        "len     equ $ - msg",
+        "",
+        "section .text",
+        "global _start",
+        "",
+        "_start:",
+        "    mov rax, 1      ; sys_write",
+        "    mov rdi, 1      ; stdout",
+        "    mov rsi, msg    ; buffer",
+        "    mov rdx, len    ; count",
+        "    syscall",
+        "",
+        "    mov rax, 60     ; sys_exit",
+        "    xor rdi, rdi    ; exit code 0",
+        "    syscall"
       ],
       "questions": [
         {
@@ -31,6 +46,300 @@
             {
               "id": 2,
               "text": "Linux"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "instruction_002",
+      "type": "instruction",
+      "difficulty": "easy",
+      "title": "Zero Out",
+      "description": "Analyze this common optimization technique.",
+      "codeblock": [
+        "xor rax, rax",
+        "ret"
+      ],
+      "questions": [
+        {
+          "id": 1,
+          "question": "What will be the value of the rax register after the first instruction?",
+          "type": "text",
+          "points": 25
+        },
+        {
+          "id": 2,
+          "question": "Why is this technique preferred over 'mov rax, 0'?",
+          "type": "multiple_choice",
+          "points": 25,
+          "responses": [
+            {
+              "id": 1,
+              "text": "It is a shorter instruction (fewer bytes)."
+            },
+            {
+              "id": 2,
+              "text": "It sets the ZF (Zero Flag)."
+            },
+            {
+              "id": 3,
+              "text": "Both of the above."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "instruction_003",
+      "type": "instruction",
+      "difficulty": "medium",
+      "title": "Stack Shift",
+      "description": "Examine this function prologue.",
+      "codeblock": [
+        "push rbp",
+        "mov rbp, rsp",
+        "sub rsp, 0x20"
+      ],
+      "questions": [
+        {
+          "id": 1,
+          "question": "How many bytes of local stack space are being allocated?",
+          "type": "text",
+          "points": 25
+        },
+        {
+          "id": 2,
+          "question": "Which registers are modified by these instructions?",
+          "type": "multiple_response",
+          "points": 25,
+          "responses": [
+            {
+              "id": 1,
+              "text": "rbp"
+            },
+            {
+              "id": 2,
+              "text": "rsp"
+            },
+            {
+              "id": 3,
+              "text": "rax"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fuzzer_001",
+      "type": "fuzzer",
+      "difficulty": "easy",
+      "title": "Unbounded",
+      "description": "Identify the issue in this C fragment.",
+      "codeblock": [
+        "void process_data(char *input) {",
+        "    char buffer[32];",
+        "    strcpy(buffer, input);",
+        "    printf(\"Data processed: %s\\n\", buffer);",
+        "}"
+      ],
+      "questions": [
+        {
+          "id": 1,
+          "question": "Which C standard library function introduces the vulnerability?",
+          "type": "text",
+          "points": 25
+        },
+        {
+          "id": 2,
+          "question": "What specific class of vulnerability is present?",
+          "type": "multiple_choice",
+          "points": 25,
+          "responses": [
+            {
+              "id": 1,
+              "text": "Integer Overflow"
+            },
+            {
+              "id": 2,
+              "text": "Use-After-Free"
+            },
+            {
+              "id": 3,
+              "text": "Buffer Overflow"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fuzzer_002",
+      "type": "fuzzer",
+      "difficulty": "easy",
+      "title": "The Format",
+      "description": "A very permissive print statement.",
+      "codeblock": [
+        "void log_message(char *user_controlled_input) {",
+        "    printf(user_controlled_input);",
+        "}"
+      ],
+      "questions": [
+        {
+          "id": 1,
+          "question": "What type of vulnerability is present here?",
+          "type": "multiple_choice",
+          "points": 25,
+          "responses": [
+            {
+              "id": 1,
+              "text": "Buffer Overflow"
+            },
+            {
+              "id": 2,
+              "text": "Format String Vulnerability"
+            },
+            {
+              "id": 3,
+              "text": "SQL Injection"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "question": "What format specifier could an attacker use to read memory off the stack?",
+          "type": "text",
+          "points": 25
+        }
+      ]
+    },
+    {
+      "id": "fuzzer_003",
+      "type": "fuzzer",
+      "difficulty": "medium",
+      "title": "Premature Evacuation",
+      "description": "Find the issue in this lifecycle.",
+      "codeblock": [
+        "void process_node(struct Node *node) {",
+        "    free(node);",
+        "    if (node->has_next) {",
+        "        process_node(node->next);",
+        "    }",
+        "}"
+      ],
+      "questions": [
+        {
+          "id": 1,
+          "question": "What is the name of this vulnerability?",
+          "type": "text",
+          "points": 25
+        },
+        {
+          "id": 2,
+          "question": "Which line number contains the dangerous dereference?",
+          "type": "text",
+          "points": 25
+        }
+      ]
+    },
+    {
+      "id": "protocol_001",
+      "type": "protocol",
+      "difficulty": "easy",
+      "title": "Port of Call",
+      "description": "Analyze this intercepted network stream.",
+      "codeblock": [
+        "47 45 54 20 2f 20 48 54 54 50 2f 31 2e 31 0d 0a",
+        "48 6f 73 74 3a 20 6c 6f 63 61 6c 68 6f 73 74 0d 0a"
+      ],
+      "questions": [
+        {
+          "id": 1,
+          "question": "What protocol is this stream utilizing?",
+          "type": "text",
+          "points": 25
+        },
+        {
+          "id": 2,
+          "question": "What is the standard port number for this protocol?",
+          "type": "multiple_choice",
+          "points": 25,
+          "responses": [
+            {
+              "id": 1,
+              "text": "21"
+            },
+            {
+              "id": 2,
+              "text": "80"
+            },
+            {
+              "id": 3,
+              "text": "443"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "protocol_002",
+      "type": "protocol",
+      "difficulty": "medium",
+      "title": "Secure Shell",
+      "description": "A classic connection string.",
+      "codeblock": [
+        "53 53 48 2d 32 2e 30 2d 4f 70 65 6e 53 53 48 5f",
+        "38 2e 39 70 31 20 55 62 75 6e 74 75 0d 0a"
+      ],
+      "questions": [
+        {
+          "id": 1,
+          "question": "What protocol is advertising its version here?",
+          "type": "text",
+          "points": 25
+        },
+        {
+          "id": 2,
+          "question": "What is the standard TCP port for this service?",
+          "type": "text",
+          "points": 25
+        }
+      ]
+    },
+    {
+      "id": "protocol_003",
+      "type": "protocol",
+      "difficulty": "easy",
+      "title": "Domain Lookup",
+      "description": "Analyze this protocol standard.",
+      "codeblock": [
+        "Standard port: 53",
+        "Transport: UDP (primarily)",
+        "Purpose: Translates human-readable names to IP addresses"
+      ],
+      "questions": [
+        {
+          "id": 1,
+          "question": "What protocol is being described?",
+          "type": "text",
+          "points": 25
+        },
+        {
+          "id": 2,
+          "question": "Which of these are valid record types for this protocol?",
+          "type": "multiple_response",
+          "points": 25,
+          "responses": [
+            {
+              "id": 1,
+              "text": "A"
+            },
+            {
+              "id": 2,
+              "text": "TXT"
+            },
+            {
+              "id": 3,
+              "text": "GET"
             }
           ]
         }

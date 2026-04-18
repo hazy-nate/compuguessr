@@ -1,11 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-only */
-/* Copyright (C) 2026 Nathaniel Williams */
-
-/****h* sys/cg_env.c, sys/cg_env
- * NAME
- *   cg_env.c
- ******/
-
+#include <elf.h>
 #include <sys/auxv.h>
 #include <sys/syscall.h>
 #include <sys/uio.h>
@@ -15,6 +8,8 @@
 #include "platform/cg_env.h"
 #include "sys/cg_types.h"
 #include "util/cg_util.h"
+
+long g_base_addr = 0;
 
 __attribute__((weak)) void
 cg_env_init(char **envp, struct cg_env *env_out)
@@ -27,13 +22,16 @@ cg_env_init(char **envp, struct cg_env *env_out)
 	if (!envp) {
 		return;
 	}
-	for (char **p = envp; *p != 0; p++) {
+
+	char **p = envp;
+	while (*p != 0) {
 		char *entry = *p;
 		char *eq = entry;
 		while (*eq && *eq != '=') {
 			eq++;
 		}
 		if (*eq != '=') {
+			p++;
 			continue;
 		}
 		cg_size_t key_len = eq - entry;
@@ -44,6 +42,18 @@ cg_env_init(char **envp, struct cg_env *env_out)
 			env_out->fastcgi_sock = value;
 			env_out->fastcgi_sock_len = cg_strlen_avx2(value);
 		}
+		p++;
+	}
+
+	/* Skip the NULL terminator to access the auxiliary vector */
+	p++;
+	Elf64_auxv_t *auxv = (Elf64_auxv_t *)p;
+	while (auxv->a_type != 0) {
+		if (auxv->a_type == AT_PHDR) {
+			/* Program headers are located immediately after the 64-byte ELF header */
+			g_base_addr = (long)auxv->a_un.a_val - 64;
+		}
+		auxv++;
 	}
 }
 
@@ -66,11 +76,20 @@ cg_env_write_stdout(struct cg_env *env)
 __attribute__((weak)) long
 cg_vdso_base_addr(char **envp)
 {
-	Elf64_auxv_t *auxv = (Elf64_auxv_t *)envp;
+	if (!envp) {
+		return 0;
+	}
+	char **p = envp;
+	while (*p != 0) {
+		p++;
+	}
+	p++;
+	Elf64_auxv_t *auxv = (Elf64_auxv_t *)p;
 	long vdso_addr = 0;
 	while (auxv->a_type != 0) {
 		if (auxv->a_type == AT_SYSINFO_EHDR) {
 			vdso_addr = (long)auxv->a_un.a_val;
+			break;
 		}
 		auxv++;
 	}

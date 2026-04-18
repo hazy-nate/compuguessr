@@ -9,7 +9,7 @@ TARGETS	+= $(PROG)
 
 $(PROG)_VERSION 	:= 0.1
 $(PROG)_TYPE		:= EXE
-$(PROG)_LDFLAGS		:= -pie -e _start -z relro -z now
+$(PROG)_LDFLAGS		:= -e _start -z relro -z now
 $(PROG)_LDLIBS		:=
 $(PROG)_DEPS		:=
 

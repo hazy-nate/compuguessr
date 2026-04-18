@@ -1,0 +1,35 @@
+{
+  "id": "protocol_002",
+  "type": "protocol",
+  "difficulty": "medium",
+  "title": "Secure Shell",
+  "description": "A classic connection string.",
+  "codeblock": [
+    "53 53 48 2d 32 2e 30 2d 4f 70 65 6e 53 53 48 5f",
+    "38 2e 39 70 31 20 55 62 75 6e 74 75 0d 0a"
+  ],
+  "questions": [
+    {
+      "id": 1,
+      "question": "What protocol is advertising its version here?",
+      "type": "text",
+      "points": 25,
+      "answer": {
+        "type": "text",
+        "value": "SSH",
+        "explanation": "The hex translates to 'SSH-2.0-OpenSSH_8.9p1 Ubuntu'."
+      }
+    },
+    {
+      "id": 2,
+      "question": "What is the standard TCP port for this service?",
+      "type": "text",
+      "points": 25,
+      "answer": {
+        "type": "text",
+        "value": "22",
+        "explanation": "SSH runs on port 22 by default."
+      }
+    }
+  ]
+}

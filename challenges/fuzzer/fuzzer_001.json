@@ -1,0 +1,43 @@
+{
+  "id": "fuzzer_001",
+  "type": "fuzzer",
+  "difficulty": "easy",
+  "title": "Unbounded",
+  "description": "Identify the issue in this C fragment.",
+  "codeblock": [
+    "void process_data(char *input) {",
+    "    char buffer[32];",
+    "    strcpy(buffer, input);",
+    "    printf(\"Data processed: %s\\n\", buffer);",
+    "}"
+  ],
+  "questions": [
+    {
+      "id": 1,
+      "question": "Which C standard library function introduces the vulnerability?",
+      "type": "text",
+      "points": 25,
+      "answer": {
+        "type": "text",
+        "value": "strcpy",
+        "explanation": "strcpy() does not check the size of the destination buffer, making it dangerous when handling external input."
+      }
+    },
+    {
+      "id": 2,
+      "question": "What specific class of vulnerability is present?",
+      "type": "multiple_choice",
+      "points": 25,
+      "responses": [
+        { "id": 1, "text": "Integer Overflow" },
+        { "id": 2, "text": "Use-After-Free" },
+        { "id": 3, "text": "Buffer Overflow" }
+      ],
+      "answer": {
+        "type": "single",
+        "value": 3,
+        "explanation": "If 'input' is longer than 32 bytes, it will overwrite adjacent memory on the stack."
+      }
+    }
+  ]
+}

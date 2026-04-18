@@ -26,6 +26,7 @@
 #include "core/cg_fastcgi.h"
 #include "core/cg_uring.h"
 #include "data/cg_hashmap.h"
+#include "data/cg_sessiondb.h"
 #include "platform/cg_env.h"
 #include "platform/cg_log.h"
 #include "platform/cg_time.h"
@@ -44,6 +45,8 @@ __attribute__((aligned(32), section(".bss"))) static struct cg_fastcgi_ctx g_fas
 __attribute__((aligned(32), section(".bss"))) static struct cg_client_ctx g_cli_ctx_pool[CG_MAX_CLIENTS];
 __attribute__((aligned(32), section(".bss"))) static struct cg_hashmap_entry g_route_map_entries[32];
 __attribute__((aligned(32), section(".bss"))) static struct cg_hashmap g_route_map;
+
+struct cg_sessiondb *g_sessiondb;
 
 __attribute__((naked, noreturn, used)) void start(void) __asm__("_start");
 
@@ -68,6 +71,7 @@ cg_main_init(const unsigned long *stack)
 	g_route_map.entries = g_route_map_entries;
 	g_route_map.capacity = 32;
 	g_route_map.count = 0;
+	g_sessiondb = cg_sessiondb_init("/tmp/cg_sessions.db");
 }
 
 static void

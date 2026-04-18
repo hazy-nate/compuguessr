@@ -1,0 +1,41 @@
+{
+  "id": "instruction_003",
+  "type": "instruction",
+  "difficulty": "medium",
+  "title": "Stack Shift",
+  "description": "Examine this function prologue.",
+  "codeblock": [
+    "push rbp",
+    "mov rbp, rsp",
+    "sub rsp, 0x20"
+  ],
+  "questions": [
+    {
+      "id": 1,
+      "question": "How many bytes of local stack space are being allocated?",
+      "type": "text",
+      "points": 25,
+      "answer": {
+        "type": "text",
+        "value": "32",
+        "explanation": "0x20 in hexadecimal is 32 in decimal."
+      }
+    },
+    {
+      "id": 2,
+      "question": "Which registers are modified by these instructions?",
+      "type": "multiple_response",
+      "points": 25,
+      "responses": [
+        { "id": 1, "text": "rbp" },
+        { "id": 2, "text": "rsp" },
+        { "id": 3, "text": "rax" }
+      ],
+      "answer": {
+        "type": "bitmask",
+        "value": 3,
+        "explanation": "The base pointer (rbp) and stack pointer (rsp) are both updated. rax is untouched."
+      }
+    }
+  ]
+}

@@ -57,7 +57,7 @@ CPPFLAGS	?=
 CXXFLAGS	?=
 ASFLAGS		?= -f elf64 -w+macro-params -w+number-overflow -w+orphan-labels
 NIMFLAGS	?= -d:danger --mm:arc --opt:size --passC:-fno-stack-protector
-LDFLAGS		?= -m elf_x86_64 -nostdlib
+LDFLAGS		?= -m elf_x86_64 -nostdlib -pie
 LDLIBS		?=
 ARFLAGS		?= rcs
 
