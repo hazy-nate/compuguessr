@@ -1,50 +1,3 @@
-const MAIN_MENU_HTML = `
-    <div class="row align-items-center g-5">
-        <div class="col-lg-7 text-lg-start text-center">
-            <div class="mb-3">
-                <span class="badge rounded-pill border border-info text-info px-3 py-2 code-font">v0.1</span>
-            </div>
-            <h1 class="display-3 fw-bold mb-3">Compu<span class="hex-accent">Guessr</span></h1>
-            <p class="lead text-secondary mb-5 pe-lg-5">
-                Examine raw data, decode assembly snippets, or find vulnerabilities before the time runs out.
-            </p>
-            <div class="row g-3">
-                <div class="col-md-4">
-                    <div class="card category-card h-100 p-3" onclick="startGame('protocol')">
-                        <div class="card-body p-0 text-center text-lg-start">
-                            <h4 class="fw-bold hex-accent mb-2">Protocol</h4>
-                            <p class="text-secondary small mb-0">Packet captures, network layers, and hex decoding.</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card category-card h-100 p-3" onclick="startGame('instruction')">
-                        <div class="card-body p-0 text-center text-lg-start">
-                            <h4 class="fw-bold text-danger mb-2">Instruction</h4>
-                            <p class="text-secondary small mb-0">x86_64, ARM, opcode analysis and reverse engineering.</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card category-card h-100 p-3" onclick="startGame('fuzzer')">
-                        <div class="card-body p-0 text-center text-lg-start">
-                            <h4 class="fw-bold text-warning mb-2">Fuzzer</h4>
-                            <p class="text-secondary small mb-0">Spot the buffer overflow, segfaults, and memory leaks.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-5">
-            <div class="glass-panel p-4 shadow-lg">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h4 class="mb-0 fw-bold">Leaderboard</h4>
-                </div>
-            </div>
-        </div>
-    </div>
-`;
-
 const MOCK_DB = {
   "version": "1.1",
   "challenges": [
@@ -96,20 +49,46 @@ const MOCK_DB = {
 const state = {
     challenges: [],
     currentChallenge: null,
-    config: { category: null, playerName: 'Anon' }
+    leaderboard: [],
+    config: { category: null, playerName: null, points: 0, isGuest: false }
 };
 
 const appDiv = document.getElementById('app');
 
 window.addEventListener('popstate', (event) => {
     if (event.state && event.state.page === 'menu') renderMainMenu();
+    else if (event.state && event.state.page === 'profile') renderProfile();
     else renderMainMenu();
 });
 
 window.addEventListener('load', () => {
     history.replaceState({ page: 'menu' }, "", window.location.pathname);
-    renderMainMenu();
+    initApp();
 });
+
+async function initApp() {
+    try {
+        const res = await fetch('/api/user/profile', {
+            method: 'GET',
+            credentials: 'same-origin'
+        });
+
+        if (res.ok) {
+            const data = await res.json();
+            state.config.playerName = data.username;
+            state.config.points = data.total_points || 0;
+            state.config.isGuest = data.is_guest || false;
+        } else if (res.status === 401) {
+            document.cookie = "SESSION=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+            state.config.playerName = null;
+            state.config.points = 0;
+            state.config.isGuest = false;
+        }
+    } catch (err) {
+        console.warn("Could not fetch profile.", err);
+    }
+    renderMainMenu();
+}
 
 function transitionView(newHTML, callback = null) {
     appDiv.classList.add('view-hidden');
@@ -121,8 +100,215 @@ function transitionView(newHTML, callback = null) {
     }, 250);
 }
 
-function renderMainMenu() {
-    transitionView(MAIN_MENU_HTML);
+function getMainMenuHTML() {
+    let lbHtml = '';
+    if (state.leaderboard && state.leaderboard.length > 0) {
+        state.leaderboard.forEach((user, idx) => {
+            let rankStyle = idx === 0 ? 'text-warning fw-bold' : (idx === 1 ? 'text-light' : (idx === 2 ? 'text-info' : 'text-secondary'));
+            lbHtml += `
+            <div class="d-flex justify-content-between align-items-center mb-3 p-2 border-bottom border-secondary" style="background: rgba(0,0,0,0.2);">
+                <div>
+                    <span class="${rankStyle} me-3 code-font">#${idx + 1}</span>
+                    <span class="text-light code-font">${user.username}</span>
+                </div>
+                <span class="badge bg-dark border border-secondary code-font">${user.points} pts</span>
+            </div>`;
+        });
+    } else {
+        lbHtml = `<p class="text-secondary small text-center code-font py-4">No ranked operators yet.</p>`;
+    }
+
+    return `
+    <div class="row align-items-center g-5">
+        <div class="col-lg-7 text-lg-start text-center">
+            <div class="mb-3 d-flex justify-content-between align-items-center">
+                <span class="badge rounded-pill border border-info text-info px-3 py-2 code-font">v0.1</span>
+                ${state.config.playerName && !state.config.isGuest
+                    ? `<button class="btn btn-sm btn-outline-info code-font" onclick="renderProfile()">Profile (${state.config.points} pts)</button>`
+                    : `<button class="btn btn-sm btn-outline-info code-font px-3" onclick="renderAuth()">Login / Register</button>`
+                }
+            </div>
+            <h1 class="display-3 fw-bold mb-3">Compu<span class="hex-accent">Guessr</span></h1>
+            <p class="lead text-secondary mb-5 pe-lg-5">
+                Examine raw data, decode assembly snippets, or find vulnerabilities before the time runs out.
+            </p>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="card category-card h-100 p-3" onclick="startGame('protocol')">
+                        <div class="card-body p-0 text-center text-lg-start">
+                            <h4 class="fw-bold hex-accent mb-2">Protocol</h4>
+                            <p class="text-secondary small mb-0">Packet captures, network layers, and hex decoding.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card category-card h-100 p-3" onclick="startGame('instruction')">
+                        <div class="card-body p-0 text-center text-lg-start">
+                            <h4 class="fw-bold text-danger mb-2">Instruction</h4>
+                            <p class="text-secondary small mb-0">x86_64, ARM, opcode analysis and reverse engineering.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card category-card h-100 p-3" onclick="startGame('fuzzer')">
+                        <div class="card-body p-0 text-center text-lg-start">
+                            <h4 class="fw-bold text-warning mb-2">Fuzzer</h4>
+                            <p class="text-secondary small mb-0">Spot the buffer overflow, segfaults, and memory leaks.</p>
+                        </div>
+                    </div>
+                 </div>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="glass-panel p-4 shadow-lg">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h4 class="mb-0 fw-bold">Leaderboard</h4>
+                </div>
+                <div class="leaderboard-container">
+                    ${lbHtml}
+                </div>
+            </div>
+        </div>
+    </div>
+    `;
+}
+
+async function renderMainMenu() {
+    try {
+        const res = await fetch('/api/leaderboard', {
+            method: 'GET',
+            credentials: 'same-origin'
+        });
+        if (res.ok) {
+            const data = await res.json();
+            state.leaderboard = data.leaderboard || [];
+        }
+    } catch (err) {
+        console.warn("Could not fetch leaderboard.", err);
+    }
+    transitionView(getMainMenuHTML());
+}
+
+async function renderProfile() {
+    history.pushState({ page: 'profile' }, "", `#profile`);
+
+    try {
+        const res = await fetch('/api/user/stats', {
+            method: 'GET',
+            credentials: 'same-origin'
+        });
+        if (res.ok) {
+            const data = await res.json();
+            state.config.points = data.points || 0;
+        }
+    } catch (err) {
+        console.warn("Failed to update stats on profile view.", err);
+    }
+
+    const html = `
+    <div class="row justify-content-center py-5">
+        <div class="col-md-6 col-lg-5">
+            <div class="glass-panel p-4 p-md-5 shadow-lg position-relative text-center">
+                <button onclick="renderMainMenu()" class="btn btn-sm btn-outline-secondary position-absolute top-0 start-0 m-3 code-font">&larr; Back</button>
+                <h4 class="code-font text-light mb-3"><span class="text-warning">${state.config.playerName}</span></h4>
+                <div class="bg-dark border border-secondary p-4 rounded mb-4">
+                    <h1 class="display-4 fw-bold text-success mb-0">${state.config.points}</h1>
+                    <span class="text-secondary small code-font">Points</span>
+                </div>
+                <button class="btn btn-outline-danger w-100 code-font fw-bold" onclick="logout()">Log Out</button>
+            </div>
+        </div>
+    </div>`;
+    transitionView(html);
+}
+
+function renderAuth() {
+    const authHTML = `
+    <div class="row justify-content-center py-5">
+        <div class="col-md-6 col-lg-5">
+            <div class="glass-panel p-4 p-md-5 shadow-lg position-relative">
+                <button onclick="renderMainMenu()" class="btn btn-sm btn-outline-secondary position-absolute top-0 start-0 m-3 code-font">&larr; Back</button>
+                <h2 class="fw-bold mb-1 text-center mt-3">Account</h2>
+
+                <ul class="nav nav-tabs mt-4" id="authTabs" role="tablist">
+                  <li class="nav-item" role="presentation">
+                    <button class="nav-link active text-info code-font" id="login-tab" data-bs-toggle="tab" data-bs-target="#login" type="button" role="tab">Login</button>
+                  </li>
+                  <li class="nav-item" role="presentation">
+                    <button class="nav-link text-info code-font" id="register-tab" data-bs-toggle="tab" data-bs-target="#register" type="button" role="tab">Register</button>
+                  </li>
+                </ul>
+
+                <div class="tab-content mt-4" id="authTabContent">
+                  <div class="tab-pane fade show active" id="login" role="tabpanel">
+                    <form onsubmit="handleAuth(event, '/api/auth/login')">
+                        <div class="mb-3">
+                            <label class="form-label text-secondary small fw-bold">Username</label>
+                            <input type="text" name="username" class="form-control bg-dark text-light border-secondary" required>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label text-secondary small fw-bold">Password</label>
+                            <input type="password" name="password" class="form-control bg-dark text-light border-secondary" required>
+                        </div>
+                        <button type="submit" class="btn btn-info w-100 fw-bold code-font">Login &rarr;</button>
+                    </form>
+                  </div>
+
+                  <div class="tab-pane fade" id="register" role="tabpanel">
+                    <form onsubmit="handleAuth(event, '/api/auth/register')">
+                        <div class="mb-3">
+                            <label class="form-label text-secondary small fw-bold">New Username</label>
+                            <input type="text" name="username" class="form-control bg-dark text-light border-secondary" required>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label text-secondary small fw-bold">Password</label>
+                            <input type="password" name="password" class="form-control bg-dark text-light border-secondary" required>
+                        </div>
+                        <button type="submit" class="btn btn-warning w-100 fw-bold code-font text-dark">Register &rarr;</button>
+                    </form>
+                  </div>
+                </div>
+                <div id="authError" class="text-danger mt-3 small code-font text-center"></div>
+            </div>
+        </div>
+    </div>`;
+    transitionView(authHTML);
+}
+
+async function handleAuth(event, endpoint) {
+    event.preventDefault();
+    const form = event.target;
+    const params = new URLSearchParams();
+    params.append('username', form.elements.username.value);
+    params.append('password', form.elements.password.value);
+
+    try {
+        const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            credentials: 'same-origin',
+            body: params.toString()
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            document.getElementById('authError').innerText = data.error || "Authentication failed.";
+            return;
+        }
+        state.config.playerName = data.username;
+        state.config.points = data.total_points || 0;
+        state.config.isGuest = false;
+        renderMainMenu();
+    } catch (err) {
+        document.getElementById('authError').innerText = "Network error. Server offline.";
+    }
+}
+
+async function logout() {
+    document.cookie = "SESSION=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    state.config.playerName = null;
+    state.config.points = 0;
+    state.config.isGuest = false;
+    renderMainMenu();
 }
 
 function nextChallenge() {
@@ -139,6 +325,11 @@ function startGame(category) {
     state.config.category = category;
     history.pushState({ page: 'setup', category: category }, "", `#setup-${category}`);
 
+    if (state.config.playerName) {
+        launchGameDirectly();
+        return;
+    }
+
     const setupHTML = `
 <div class="row justify-content-center py-5">
     <div class="col-md-6 col-lg-5">
@@ -146,13 +337,13 @@ function startGame(category) {
             <button onclick="renderMainMenu()" class="btn btn-sm btn-outline-secondary position-absolute top-0 start-0 m-3 code-font">&larr; Back</button>
             <h2 class="fw-bold mb-1 text-center mt-3">New Game</h2>
             <p class="text-center text-info code-font small mb-4">Category: <b class="text-uppercase">${category}</b></p>
-            <form id="setupForm" onsubmit="launchGame(event)">
+            <form onsubmit="launchGuestGame(event)">
                 <div class="mb-4">
                     <label class="form-label text-secondary small fw-bold">Guest Name</label>
                     <input type="text" id="playerName" class="form-control form-control-lg bg-dark text-light border-secondary" required autocomplete="off">
                 </div>
                 <div class="d-grid">
-                    <button type="submit" class="btn btn-info btn-lg fw-bold code-font">Start &rarr;</button>
+                    <button type="submit" class="btn btn-info btn-lg fw-bold code-font">Play as Guest &rarr;</button>
                 </div>
             </form>
         </div>
@@ -161,23 +352,37 @@ function startGame(category) {
     transitionView(setupHTML, () => document.getElementById('playerName').focus());
 }
 
-async function launchGame(event) {
+async function launchGuestGame(event) {
     event.preventDefault();
-    state.config.playerName = document.getElementById('playerName').value || 'Anon';
-
+    state.config.playerName = document.getElementById('playerName').value || 'Guest';
+    state.config.isGuest = true;
     appDiv.innerHTML = `
         <div class="text-center py-5">
             <div class="spinner-border text-info mb-3" role="status"></div>
             <h3 class="code-font text-muted">Authenticating Session...</h3>
         </div>`;
-
     try {
-        const authRes = await fetch('/api/auth/guest', { method: 'POST' });
-        if (!authRes.ok) throw new Error("Failed to authenticate session.");
+        const authRes = await fetch('/api/auth/guest', {
+            method: 'POST',
+            credentials: 'same-origin'
+        });
+        if (!authRes.ok) throw new Error("Failed to authenticate guest.");
     } catch (err) {
         console.warn("Auth failed, continuing in offline mode.", err);
     }
+    loadChallenges();
+}
 
+async function launchGameDirectly() {
+    appDiv.innerHTML = `
+        <div class="text-center py-5">
+            <div class="spinner-border text-info mb-3" role="status"></div>
+            <h3 class="code-font text-muted">Loading Data...</h3>
+        </div>`;
+    loadChallenges();
+}
+
+async function loadChallenges() {
     try {
         const res = await fetch('/challenges/challenges.json');
         if (!res.ok) throw new Error("Network response was not ok");
@@ -209,7 +414,6 @@ function renderChallenge(chal) {
                 </div>
                 <h2 class="fw-bold text-info mb-2">${chal.title}</h2>
                 <p class="text-light mb-4">${chal.description}</p>`;
-
     if (chal.codeblock && chal.codeblock.length > 0) {
         html += `<div class="bg-dark p-3 rounded mb-4" style="border-left: 3px solid #38bdf8; overflow-x: auto;">
                     <pre class="mb-0"><code class="code-font text-light" style="font-size: 0.9rem;">${chal.codeblock.join('\n')}</code></pre>
@@ -248,7 +452,6 @@ function renderChallenge(chal) {
         }
         html += `</div>`;
     });
-
     html += `   <div class="d-flex justify-content-between align-items-center mt-4">
                     <button type="button" class="btn btn-outline-secondary code-font" onclick="renderMainMenu()">Abort</button>
                     <button type="submit" class="btn btn-info fw-bold code-font px-5">Submit Payload &rarr;</button>
@@ -266,7 +469,6 @@ async function submitAnswers(event) {
     const form = event.target;
     const params = new URLSearchParams();
     params.append('id', state.currentChallenge.id);
-
     state.currentChallenge.questions.forEach(q => {
         if (q.type === 'text' || q.type === 'multiple_choice') {
             const el = form.elements[`q${q.id}`];
@@ -283,21 +485,19 @@ async function submitAnswers(event) {
             params.append(`q${q.id}`, bitmask);
         }
     });
-
     appDiv.innerHTML = `
         <div class="text-center py-5">
             <div class="spinner-border text-warning mb-3" role="status"></div>
             <h3 class="code-font text-muted">Awaiting backend validation...</h3>
             <p class="text-secondary code-font small">${params.toString()}</p>
         </div>`;
-
     try {
         const response = await fetch('/api/challenge/verify', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            credentials: 'same-origin',
             body: params.toString()
         });
-
         const result = await response.json();
 
         if (!response.ok) {
@@ -315,9 +515,13 @@ async function submitAnswers(event) {
             return;
         }
 
+        // Add the earned points to local state
+        if (result.total_earned > 0 && !state.config.isGuest) {
+            state.config.points += result.total_earned;
+        }
+
         let headerText = "Partial Success";
         let headerClass = "text-warning";
-
         if (result.total_earned === result.max_points) {
             headerText = "Challenge Mastered";
             headerClass = "text-success";

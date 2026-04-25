@@ -3,7 +3,7 @@
 
 /****h* app/main.c
  * NAME
- *   main.c
+ * main.c
  ******/
 
 #define _SYS_SOCKET_H
@@ -27,6 +27,7 @@
 #include "core/cg_uring.h"
 #include "data/cg_hashmap.h"
 #include "data/cg_sessiondb.h"
+#include "data/cg_userdb.h"
 #include "platform/cg_env.h"
 #include "platform/cg_log.h"
 #include "platform/cg_time.h"
@@ -34,9 +35,6 @@
 #include "sys/cg_types.h"
 #include "util/cg_util.h"
 
-/*
- * Without using the section attribute, these might be placed on the stack.
- */
 __attribute__((aligned(32), section(".bss"))) static struct cg_env g_env;
 __attribute__((aligned(32), section(".bss"))) static char g_ts_buf[20];
 __attribute__((aligned(32), section(".bss"))) static struct __kernel_timespec g_ts_tick;
@@ -47,6 +45,7 @@ __attribute__((aligned(32), section(".bss"))) static struct cg_hashmap_entry g_r
 __attribute__((aligned(32), section(".bss"))) static struct cg_hashmap g_route_map;
 
 struct cg_sessiondb *g_sessiondb;
+struct cg_userdb *g_userdb;
 
 __attribute__((naked, noreturn, used)) void start(void) __asm__("_start");
 
@@ -54,17 +53,12 @@ static void
 cg_main_init(const unsigned long *stack)
 {
 	unsigned long argc = stack[0];
-	/* char **argv = (char **)&stack[1]; */
 	char **envp = (char **)&stack[argc + 2];
-	/*====================================================================*/
 	cg_time_init(envp);
-	/*====================================================================*/
 	cg_env_init(envp, &g_env);
 	if (g_env.fastcgi_sock_len > UNIX_PATH_MAX) {
-		/* Handle a file path too big. */
 	}
 	cg_env_write_stdout(&g_env);
-	/*====================================================================*/
 	cg_memcpy_avx2(g_ts_buf, "0000-00-00 00:00:00", 19);
 	g_ts_tick.tv_sec = 1;
 	g_ts_tick.tv_nsec = 0;
@@ -72,6 +66,7 @@ cg_main_init(const unsigned long *stack)
 	g_route_map.capacity = 32;
 	g_route_map.count = 0;
 	g_sessiondb = cg_sessiondb_init("/tmp/cg_sessions.db");
+	g_userdb = cg_userdb_init("/tmp/cg_users.db");
 }
 
 static void
@@ -79,9 +74,9 @@ cg_main_timestamp_tick(struct cg_uring_ctx *ctx, struct __kernel_timespec *ts)
 {
 	cg_datetime_str_get(g_ts_buf);
 	struct io_uring_sqe *sqe = cg_uring_sqe_get(ctx);
-        if (!sqe) {
+	if (!sqe) {
                 return;
-        }
+	}
         sqe->opcode = IORING_OP_TIMEOUT;
         sqe->fd = -1;
         sqe->addr = (unsigned long)ts;
@@ -94,11 +89,9 @@ cg_main_timestamp_tick(struct cg_uring_ctx *ctx, struct __kernel_timespec *ts)
 static void
 cg_main_fastcgi_setup(struct cg_fastcgi_ctx *ctx)
 {
-	/* Unlink */
 	syscall3(SYS_unlink, (long)g_env.fastcgi_sock, 0, 0);
 	cg_datetime_str_get(g_ts_buf);
 	cg_log_write_ts_note(g_ts_buf, "Unlinked existing socket\n");
-	/* Socket */
 	long fd = syscall3(SYS_socket, AF_UNIX, SOCK_STREAM, 0);
 	if (fd < 0) {
 		cg_datetime_str_get(g_ts_buf);
@@ -108,7 +101,6 @@ cg_main_fastcgi_setup(struct cg_fastcgi_ctx *ctx)
 	ctx->sockfd = (int)fd;
 	cg_datetime_str_get(g_ts_buf);
 	cg_log_write_ts_note(g_ts_buf, "Created new socket\n");
-	/* Bind */
 	long res = syscall3(SYS_bind, fd, (long)&ctx->sockaddr,
 			    (long)sizeof(ctx->sockaddr.sun_family) + g_env.fastcgi_sock_len + 1);
 	if (res < 0) {
@@ -119,7 +111,6 @@ cg_main_fastcgi_setup(struct cg_fastcgi_ctx *ctx)
 	}
 	cg_datetime_str_get(g_ts_buf);
 	cg_log_write_ts_note(g_ts_buf, "Bound to socket\n");
-	/* Listen */
 	res = syscall2(SYS_listen, fd, 128);
 	if (res < 0) {
 		cg_datetime_str_get(g_ts_buf);
@@ -157,7 +148,6 @@ cg_main_fastcgi_cqe_handle(struct cg_fastcgi_ctx *ctx, struct io_uring_cqe *cqe)
 	switch (ctx->state) {
 	case CG_FASTCGI_STATE_ACCEPT_CQE:
 		if (cqe->res < 0) {
-			/* Handle accept error. If fatal, multishot stops. */
 			cg_datetime_str_get(g_ts_buf);
 			cg_log_write_ts_error(g_ts_buf, "Accept error\n");
 			ctx->state = CG_FASTCGI_STATE_ACCEPT_SQE;
@@ -193,15 +183,10 @@ cg_main_client_state_handle(struct cg_uring_ctx *uring_ctx, struct cg_client_ctx
 	case CG_FASTCGI_CLIENT_STATE_READ_SQE: {
 		struct io_uring_sqe *sqe = cg_uring_sqe_get(uring_ctx);
 		if (!sqe) {
-			/* Submission ring is full, try again next loop. */
 			return;
 		}
 		sqe->opcode = IORING_OP_READ;
 		sqe->fd = fcgi->sockfd;
-		/*
-		 * Reading: append to the buffer where valid data ends and read
-		 * up to the remaining capacity of the array.
-		 */
 		sqe->addr = (unsigned long)(rx_meta->buf + rx_meta->valid);
 		sqe->len = rx_meta->len - rx_meta->valid;
 		sqe->user_data = CG_TAG_PTR(cli_ctx, CG_TAG_CLIENT);
@@ -216,10 +201,6 @@ cg_main_client_state_handle(struct cg_uring_ctx *uring_ctx, struct cg_client_ctx
 		}
 		sqe->opcode = IORING_OP_WRITE;
 		sqe->fd = fcgi->sockfd;
-		/*
-		 * Writing: drain the buffer at the current position and write
-		 * the remaining bytes until the valid boundary.
-		 */
 		sqe->addr = (unsigned long)(tx_meta->buf + tx_meta->pos);
 		sqe->len = tx_meta->valid - tx_meta->pos;
 		sqe->user_data = CG_TAG_PTR(cli_ctx, CG_TAG_CLIENT);
@@ -235,7 +216,6 @@ cg_main_client_state_handle(struct cg_uring_ctx *uring_ctx, struct cg_client_ctx
 		}
 		struct io_uring_sqe *sqe = cg_uring_sqe_get(uring_ctx);
 		if (!sqe) {
-			/* Ring is full, wait until next loop iteration */
 			return;
 		}
 		sqe->opcode = IORING_OP_CLOSE;
@@ -320,13 +300,6 @@ start(void)
 			 "call main\n");
 }
 
-/****f* main/main
- * NAME
- *   main
- * FUNCTION
- *
- * SOURCE
- */
 __attribute__((noreturn, used)) void
 main(const unsigned long *stack)
 {
@@ -372,4 +345,3 @@ main(const unsigned long *stack)
 	syscall1(SYS_exit, EXIT_SUCCESS);
 	__builtin_unreachable();
 }
-/******/
