@@ -6,7 +6,7 @@
  *   cg_hashmap.c
  * FUNCTION
  *   Generic hashmap implementation using linear probing. Supports
- *   64-bit integer keys and string keys for internal data routing. [cite: 442-455]
+ *   64-bit integer keys and string keys for internal data routing.
  ******/
 
 #include <stdint.h>

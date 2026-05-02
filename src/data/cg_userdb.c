@@ -6,7 +6,7 @@
  *   cg_userdb.c
  * FUNCTION
  *   Persistent user account storage. Manages user registration,
- *   authentication via password hashing, and profile data persistence. [cite: 474-488]
+ *   authentication via password hashing, and profile data persistence.
  ******/
 
 #include <fcntl.h>

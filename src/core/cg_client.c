@@ -6,7 +6,7 @@
  *   cg_client.c
  * FUNCTION
  *   Client context management, including pool initialization,
- *   allocation, and resource reclamation for active connections. [cite: 93-96]
+ *   allocation, and resource reclamation for active connections.
  ******/
 
 #include <sys/syscall.h>

@@ -3,7 +3,7 @@
   "type": "fuzzer",
   "difficulty": "medium",
   "title": "Overflow in Options",
-  "description": "The parser returned a 'Header Overflow' error when trying to process this segment[cite: 9, 10, 11].",
+  "description": "The parser returned a 'Header Overflow' error when trying to process this segment.",
   "codeblock": [
     "4f 00 00 40 1a 2b 00 00 40 11 b1 c2 c0 a8 0a 01",
     "c0 a8 0a ff"
@@ -23,7 +23,7 @@
   "questions": [
     {
       "id": 1,
-      "question": "Which field contains the fuzzed value causing the overflow exception[cite: 10]?",
+      "question": "Which field contains the fuzzed value causing the overflow exception?",
       "type": "multiple_choice",
       "points": 50,
       "responses": [
@@ -35,7 +35,7 @@
       "answer": {
         "type": "single",
         "value": 1,
-        "explanation": "The IHL (Internet Header Length) is the second nibble of the first byte[cite: 5, 6]. It is set to 0xF (15), which means the header should be 60 bytes (15 * 4). However, the Total Length field is 0x0040 (64 bytes), and the IP header options cannot exceed the boundary of the packet if additional protocol data is expected[cite: 10, 11]."
+        "explanation": "The IHL (Internet Header Length) is the second nibble of the first byte."
       }
     }
   ]

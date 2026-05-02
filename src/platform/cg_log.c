@@ -6,7 +6,7 @@
  * cg_log.c
  * FUNCTION
  * Vectored logging utility. Provides atomic, thread-safe logging
- * to stderr with optional timestamping and source location info. [cite: 227-235]
+ * to stderr with optional timestamping and source location info.
  ******/
 
 #include <sys/syscall.h>

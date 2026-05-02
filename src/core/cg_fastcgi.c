@@ -6,7 +6,7 @@
  *   cg_fastcgi.c
  * FUNCTION
  *   FastCGI protocol state machine and record parser. Handles header
- *   processing, parameter extraction, and STDOUT/END_REQUEST generation. [cite: 60-93]
+ *   processing, parameter extraction, and STDOUT/END_REQUEST generation.
  ******/
 
 #include <sys/syscall.h>

@@ -6,7 +6,7 @@
  *   cg_challengedb.c
  * FUNCTION
  *   Read-only challenge database provider. Implements binary search
- *   lookups for static challenge data with pointer relocation. [cite: 455-462]
+ *   lookups for static challenge data with pointer relocation.
  ******/
 
 #include <string.h>

@@ -15,7 +15,7 @@ static const struct cg_question q_fuzzer_003[] = {
 };
 
 static const struct cg_question q_fuzzer_004[] = {
-    { .id = 1, .points = 50, .type = CG_ANS_SINGLE, .answer.numeric_answer = 1, .explanation = "The IHL (Internet Header Length) is the second nibble of the first byte[cite: 5, 6]. It is set to 0xF (15), which means the header should be 60 bytes (15 * 4). However, the Total Length field is 0x0040 (64 bytes), and the IP header options cannot exceed the boundary of the packet if additional protocol data is expected[cite: 10, 11]." },
+    { .id = 1, .points = 50, .type = CG_ANS_SINGLE, .answer.numeric_answer = 1, .explanation = "The IHL (Internet Header Length) is the second nibble of the first byte." },
 };
 
 static const struct cg_question q_fuzzer_005[] = {
@@ -55,7 +55,7 @@ static const struct cg_question q_protocol_003[] = {
 };
 
 static const struct cg_question q_protocol_004[] = {
-    { .id = 1, .points = 50, .type = CG_ANS_SINGLE, .answer.numeric_answer = 2, .explanation = "The Client IP Address (offsets 12-15) is 0x00000000. This indicates the client does not yet have an assigned IP and is likely in the Discover or Request phase[cite: 5, 6, 7]." },
+    { .id = 1, .points = 50, .type = CG_ANS_SINGLE, .answer.numeric_answer = 2, .explanation = "The Client IP Address (offsets 12-15) is 0x00000000. This indicates the client does not yet have an assigned IP and is likely in the Discover or Request phase." },
 };
 
 static const struct cg_question q_protocol_005[] = {

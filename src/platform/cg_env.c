@@ -6,7 +6,7 @@
  *   cg_env.c
  * FUNCTION
  *   Environment and platform abstraction layer. Parses environment
- *   variables and resolves system functions via the vDSO. [cite: 250-268]
+ *   variables and resolves system functions via the vDSO.
  ******/
 
 #include <elf.h>

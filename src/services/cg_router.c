@@ -6,7 +6,7 @@
  *   cg_router.c
  * FUNCTION
  *   API request routing and business logic. Implements all endpoint
- *   handlers, JSON serialization, and form-data parsing. [cite: 119-227]
+ *   handlers, JSON serialization, and form-data parsing.
  ******/
 
 #include <sys/syscall.h>

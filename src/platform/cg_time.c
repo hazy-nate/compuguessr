@@ -6,7 +6,7 @@
  *   cg_time.c
  * FUNCTION
  *   High-performance time subsystem. Utilizes the vDSO for low-latency
- *   timestamping and provides optimized datetime string formatting. [cite: 236-249]
+ *   timestamping and provides optimized datetime string formatting.
  ******/
 
 #include <linux/time.h>

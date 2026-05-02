@@ -37,7 +37,7 @@
       "answer": {
         "type": "single",
         "value": 2,
-        "explanation": "The Client IP Address (offsets 12-15) is 0x00000000. This indicates the client does not yet have an assigned IP and is likely in the Discover or Request phase[cite: 5, 6, 7]."
+        "explanation": "The Client IP Address (offsets 12-15) is 0x00000000. This indicates the client does not yet have an assigned IP and is likely in the Discover or Request phase."
       }
     }
   ]

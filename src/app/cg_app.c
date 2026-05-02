@@ -6,7 +6,7 @@
  *   cg_main.c
  * FUNCTION
  *   Core application entry point and main event loop. Manages the
- *   io_uring context, socket lifecycle, and global timestamp ticks. [cite: 18-59]
+ *   io_uring context, socket lifecycle, and global timestamp ticks.
  ******/
 
 #define _SYS_SOCKET_H
