@@ -1,0 +1,42 @@
+{
+  "id": "fuzzer_004",
+  "type": "fuzzer",
+  "difficulty": "medium",
+  "title": "Overflow in Options",
+  "description": "The parser returned a 'Header Overflow' error when trying to process this segment[cite: 9, 10, 11].",
+  "codeblock": [
+    "4f 00 00 40 1a 2b 00 00 40 11 b1 c2 c0 a8 0a 01",
+    "c0 a8 0a ff"
+  ],
+  "hex_fields": [
+    { "start": 0, "length": 1, "name": "Version / IHL" },
+    { "start": 1, "length": 1, "name": "DSCP / ECN" },
+    { "start": 2, "length": 2, "name": "Total Length" },
+    { "start": 4, "length": 2, "name": "Identification" },
+    { "start": 6, "length": 2, "name": "Flags / Fragment Offset" },
+    { "start": 8, "length": 1, "name": "Time to Live" },
+    { "start": 9, "length": 1, "name": "Protocol" },
+    { "start": 10, "length": 2, "name": "Header Checksum" },
+    { "start": 12, "length": 4, "name": "Source IP Address" },
+    { "start": 16, "length": 4, "name": "Destination IP Address" }
+  ],
+  "questions": [
+    {
+      "id": 1,
+      "question": "Which field contains the fuzzed value causing the overflow exception[cite: 10]?",
+      "type": "multiple_choice",
+      "points": 50,
+      "responses": [
+        { "id": 1, "text": "Version / IHL" },
+        { "id": 2, "text": "Total Length" },
+        { "id": 3, "text": "Protocol" },
+        { "id": 4, "text": "Destination IP Address" }
+      ],
+      "answer": {
+        "type": "single",
+        "value": 1,
+        "explanation": "The IHL (Internet Header Length) is the second nibble of the first byte[cite: 5, 6]. It is set to 0xF (15), which means the header should be 60 bytes (15 * 4). However, the Total Length field is 0x0040 (64 bytes), and the IP header options cannot exceed the boundary of the packet if additional protocol data is expected[cite: 10, 11]."
+      }
+    }
+  ]
+}

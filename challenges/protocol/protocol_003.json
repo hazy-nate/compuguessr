@@ -1,40 +1,35 @@
 {
   "id": "protocol_003",
   "type": "protocol",
-  "difficulty": "easy",
-  "title": "Domain Lookup",
-  "description": "Analyze this protocol standard.",
+  "difficulty": "hard",
+  "title": "Application Frame",
+  "description": "Inspect the application layer preamble.",
   "codeblock": [
-    "Standard port: 53",
-    "Transport: UDP (primarily)",
-    "Purpose: Translates human-readable names to IP addresses"
+    "16 03 01 00 c8 01 00 00 c4 03 03"
+  ],
+  "hex_fields": [
+    { "start": 0, "length": 1, "name": "Content Type" },
+    { "start": 1, "length": 2, "name": "Legacy Version" },
+    { "start": 3, "length": 2, "name": "Length" },
+    { "start": 5, "length": 1, "name": "Handshake Type" },
+    { "start": 6, "length": 3, "name": "Handshake Length" },
+    { "start": 9, "length": 2, "name": "Client Version" }
   ],
   "questions": [
     {
       "id": 1,
-      "question": "What protocol is being described?",
-      "type": "text",
-      "points": 25,
-      "answer": {
-        "type": "text",
-        "value": "DNS",
-        "explanation": "The Domain Name System (DNS) operates on port 53 and resolves hostnames to IPs."
-      }
-    },
-    {
-      "id": 2,
-      "question": "Which of these are valid record types for this protocol?",
-      "type": "multiple_response",
-      "points": 25,
+      "question": "Which field defines the record as a handshake initiation?",
+      "type": "multiple_choice",
+      "points": 50,
       "responses": [
-        { "id": 1, "text": "A" },
-        { "id": 2, "text": "TXT" },
-        { "id": 3, "text": "GET" }
+        { "id": 1, "text": "Content Type" },
+        { "id": 2, "text": "Legacy Version" },
+        { "id": 3, "text": "Handshake Type" }
       ],
       "answer": {
-        "type": "bitmask",
+        "type": "single",
         "value": 3,
-        "explanation": "A and TXT are DNS records. GET is an HTTP method."
+        "explanation": "The Handshake Type (0x01) specifically identifies this payload as a Client Hello."
       }
     }
   ]

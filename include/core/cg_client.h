@@ -4,6 +4,14 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /* Copyright (C) 2026 Nathaniel Williams */
 
+/****h* core/cg_client.h
+ * NAME
+ *   cg_client.h
+ * FUNCTION
+ *   Client context and request structures. Defines limits for URI
+ *   length, method strings, and STDIN accumulation.
+ ******/
+
 /*==============================================================================
  * SYSTEM HEADERS
  *============================================================================*/

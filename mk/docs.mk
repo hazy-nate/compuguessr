@@ -104,7 +104,7 @@ docs-serve:
 robodoc: robodoc-clean
 	@printf "$(BLUE)$(BOLD)DOCS$(RESET)     $(BLUE)Generating Robodoc...$(RESET)\n"
 	$(Q)mkdir -p $(ROBODOC_DIR)
-	$(Q)robodoc --css $(ROBODOC_CSS) --doc $(ROBODOC_DIR) --rc $(ROBODOC_RC) --src .
+	$(Q)robodoc --css $(ROBODOC_CSS) --doc $(ROBODOC_DIR) --rc $(ROBODOC_RC) --src $(SRC_DIR)
 	$(Q)find $(ROBODOC_DIR) -type f -name "*.html" -exec python3 docs/clean_docs.py {} +
 #******
 

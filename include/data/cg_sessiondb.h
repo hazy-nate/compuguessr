@@ -1,6 +1,14 @@
 #ifndef CG_SESSIONDB_H
 #define CG_SESSIONDB_H
 
+/****h* data/cg_sessiondb.h
+ * NAME
+ *   cg_sessiondb.h
+ * FUNCTION
+ *   Persistent session database structures, including the file
+ *   header and memory-mapped entry pool definitions.
+ ******/
+
 /*==============================================================================
  * SYSTEM HEADERS
  *============================================================================*/

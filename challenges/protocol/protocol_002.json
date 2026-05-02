@@ -2,33 +2,34 @@
   "id": "protocol_002",
   "type": "protocol",
   "difficulty": "medium",
-  "title": "Secure Shell",
-  "description": "A classic connection string.",
+  "title": "Control Message",
+  "description": "Review the network diagnostic transmission.",
   "codeblock": [
-    "53 53 48 2d 32 2e 30 2d 4f 70 65 6e 53 53 48 5f",
-    "38 2e 39 70 31 20 55 62 75 6e 74 75 0d 0a"
+    "08 00 4d 3b 00 01 00 01 61 62 63 64 65 66 67 68"
+  ],
+  "hex_fields": [
+    { "start": 0, "length": 1, "name": "Type" },
+    { "start": 1, "length": 1, "name": "Code" },
+    { "start": 2, "length": 2, "name": "Checksum" },
+    { "start": 4, "length": 2, "name": "Identifier" },
+    { "start": 6, "length": 2, "name": "Sequence Number" },
+    { "start": 8, "length": 8, "name": "Data" }
   ],
   "questions": [
     {
       "id": 1,
-      "question": "What protocol is advertising its version here?",
-      "type": "text",
-      "points": 25,
+      "question": "What is the primary function of this segment?",
+      "type": "multiple_choice",
+      "points": 50,
+      "responses": [
+        { "id": 1, "text": "Establish a reliable connection stream." },
+        { "id": 2, "text": "Ping a remote host." },
+        { "id": 3, "text": "Route packets dynamically." }
+      ],
       "answer": {
-        "type": "text",
-        "value": "SSH",
-        "explanation": "The hex translates to 'SSH-2.0-OpenSSH_8.9p1 Ubuntu'."
-      }
-    },
-    {
-      "id": 2,
-      "question": "What is the standard TCP port for this service?",
-      "type": "text",
-      "points": 25,
-      "answer": {
-        "type": "text",
-        "value": "22",
-        "explanation": "SSH runs on port 22 by default."
+        "type": "single",
+        "value": 2,
+        "explanation": "A Type 8, Code 0 structure represents an Echo Request."
       }
     }
   ]

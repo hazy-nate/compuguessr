@@ -4,9 +4,11 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /* Copyright (C) 2026 Nathaniel Williams */
 
-/****h* data/cg_challengedb.h, data/cg_challengedb
+/****h* data/cg_challengedb.h
  * NAME
  *   cg_challengedb.h
+ * FUNCTION
+ *   Public interface for the challenge database lookup service.
  ******/
 
 /*==============================================================================

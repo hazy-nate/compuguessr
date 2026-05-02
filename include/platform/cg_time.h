@@ -4,11 +4,12 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /* Copyright (C) 2026 Nathaniel Williams */
 
-/****h* sys/cg_time.h
+/****h* platform/cg_time.h
  * NAME
  *   cg_time.h
  * FUNCTION
- *   <function>
+ *   Time subsystem interface for high-performance timestamping
+ *   and datetime string generation.
  ******/
 
 #include <stdint.h>

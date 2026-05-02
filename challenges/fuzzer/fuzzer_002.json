@@ -1,40 +1,40 @@
 {
   "id": "fuzzer_002",
   "type": "fuzzer",
-  "difficulty": "easy",
-  "title": "The Format",
-  "description": "A very permissive print statement.",
+  "difficulty": "hard",
+  "title": "State Transition Error",
+  "description": "An intrusion detection system dropped this segment before it reached the internal subnet.",
   "codeblock": [
-    "void log_message(char *user_controlled_input) {",
-    "    printf(user_controlled_input);",
-    "}"
+    "04 00 00 50 00 00 00 00 00 00 00 00 50 03 00 00",
+    "00 00 00 00"
+  ],
+  "hex_fields": [
+    { "start": 0, "length": 2, "name": "Source Port" },
+    { "start": 2, "length": 2, "name": "Destination Port" },
+    { "start": 4, "length": 4, "name": "Sequence Number" },
+    { "start": 8, "length": 4, "name": "Acknowledgment Number" },
+    { "start": 12, "length": 1, "name": "Data Offset / Reserved" },
+    { "start": 13, "length": 1, "name": "Flags" },
+    { "start": 14, "length": 2, "name": "Window Size" },
+    { "start": 16, "length": 2, "name": "Checksum" },
+    { "start": 18, "length": 2, "name": "Urgent Pointer" }
   ],
   "questions": [
     {
       "id": 1,
-      "question": "What type of vulnerability is present here?",
+      "question": "Which field violates state specifications?",
       "type": "multiple_choice",
-      "points": 25,
+      "points": 50,
       "responses": [
-        { "id": 1, "text": "Buffer Overflow" },
-        { "id": 2, "text": "Format String Vulnerability" },
-        { "id": 3, "text": "SQL Injection" }
+        { "id": 1, "text": "Source Port" },
+        { "id": 2, "text": "Sequence Number" },
+        { "id": 3, "text": "Flags" },
+        { "id": 4, "text": "Window Size" }
       ],
       "answer": {
         "type": "single",
-        "value": 2,
-        "explanation": "Passing user input directly as the format string argument allows an attacker to use specifiers like %x or %n to read/write memory."
-      }
-    },
-    {
-      "id": 2,
-      "question": "What format specifier could an attacker use to read memory off the stack?",
-      "type": "text",
-      "points": 25,
-      "answer": {
-        "type": "text",
-        "value": "%x",
-        "explanation": "%x or %p will pop arguments off the stack and print them."
+        "value": 3,
+        "explanation": "The Flags field is 0x03, asserting both SYN and FIN simultaneously, which is an invalid state transition."
       }
     }
   ]

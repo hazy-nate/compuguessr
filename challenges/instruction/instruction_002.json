@@ -1,39 +1,27 @@
 {
   "id": "instruction_002",
   "type": "instruction",
-  "difficulty": "easy",
-  "title": "Zero Out",
-  "description": "Analyze this common optimization technique.",
+  "difficulty": "medium",
+  "title": "Stack Swapping",
+  "description": "Trace the values as they traverse the stack.",
   "codeblock": [
-    "xor rax, rax",
-    "ret"
+    "mov rax, 50",
+    "mov rcx, 10",
+    "push rax",
+    "push rcx",
+    "pop rax",
+    "pop rcx"
   ],
   "questions": [
     {
       "id": 1,
-      "question": "What will be the value of the rax register after the first instruction?",
+      "question": "What is the final integer value in rax?",
       "type": "text",
-      "points": 25,
+      "points": 50,
       "answer": {
         "type": "text",
-        "value": "0",
-        "explanation": "XORing a register with itself always results in 0."
-      }
-    },
-    {
-      "id": 2,
-      "question": "Why is this technique preferred over 'mov rax, 0'?",
-      "type": "multiple_choice",
-      "points": 25,
-      "responses": [
-        { "id": 1, "text": "It is a shorter instruction (fewer bytes)." },
-        { "id": 2, "text": "It sets the ZF (Zero Flag)." },
-        { "id": 3, "text": "Both of the above." }
-      ],
-      "answer": {
-        "type": "single",
-        "value": 3,
-        "explanation": "xor reg, reg is both smaller in binary encoding and clears the CPU's dependency chain while setting the Zero Flag."
+        "value": "10",
+        "explanation": "The stack is LIFO. rcx (10) was pushed last, so popping into rax places 10 into the register."
       }
     }
   ]

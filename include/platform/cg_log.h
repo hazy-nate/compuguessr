@@ -4,9 +4,12 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /* Copyright (C) 2026 Nathaniel Williams */
 
-/****h* platform/cg_log.h, platform/cg_log
+/****h* platform/cg_log.h
  * NAME
  *   cg_log.h
+ * FUNCTION
+ *   Logging system macros and function prototypes for atomic
+ *   vectored writes to standard error.
  ******/
 
 /*==============================================================================

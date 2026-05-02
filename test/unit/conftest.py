@@ -4,30 +4,17 @@
 import ctypes
 import os
 import pytest
-
-class UtoaResult(ctypes.Structure):
-    _fields_ = [
-        ("ptr", ctypes.c_void_p),   # RAX
-        ("len", ctypes.c_uint64)    # RDX
-    ]
+from cg_bindings import apply_bindings
 
 @pytest.fixture(scope="session")
 def lib():
-    """Loads and configures the assembly library as a singleton for the session."""
     lib_path = os.path.abspath("bin/debug/libcompuguessr.so")
-
     if not os.path.exists(lib_path):
         pytest.fail(f"Library not found at {lib_path}. Run 'make' first.")
 
     lib = ctypes.CDLL(lib_path)
+    return apply_bindings(lib)
 
-    lib.utoa_r.argtypes = [ctypes.c_uint64, ctypes.c_char_p]
-    lib.utoa_r.restype = UtoaResult
-
-    lib.strlen_r.argtypes = [ctypes.c_char_p]
-    lib.strlen_r.restype = ctypes.c_uint64
-
-    lib.strlen_v_r.argtypes = [ctypes.c_char_p]
-    lib.strlen_v_r.restype = ctypes.c_uint64
-
-    return lib
+@pytest.fixture
+def temp_db_path(tmp_path):
+    return str(tmp_path / "testdb.dat").encode('utf-8')

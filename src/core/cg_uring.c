@@ -1,9 +1,12 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /* Copyright (C) 2026 Nathaniel Williams */
 
-/****h* sys/cg_uring.c
+/****h* core/cg_uring.c
  * NAME
  *   cg_uring.c
+ * FUNCTION
+ *   Userspace interface for Linux io_uring. Manages ring initialization,
+ *   shared memory mapping, and SQE/CQE queue operations. [cite: 97-119]
  ******/
 
 #include <linux/io_uring.h>
@@ -15,6 +18,25 @@
 #include "core/cg_uring.h"
 #include "util/cg_util.h"
 
+/****f* cg_uring/cg_uring_init
+ * NAME
+ *   cg_uring_init
+ * SYNOPSIS
+ *   int cg_uring_init(struct cg_uring_ctx *ctx, int flags)
+ * FUNCTION
+ *   Initializes an io_uring instance and maps the submission and
+ *   completion queues into the process address space. It
+ *   configures the ring parameters, executes the io_uring_setup syscall,
+ *   and performs multiple mmap operations to establish the shared
+ *   memory interface between the kernel and userspace.
+ * INPUTS
+ *   * ctx   - Pointer to the io_uring context structure to initialize.
+ *   * flags - Setup flags to pass to the kernel (e.g., IORING_SETUP_SQPOLL).
+ * RESULT
+ *   * 0 on success, or a negative error code if setup or memory
+ *   mapping fails.
+ * SOURCE
+ */
 int
 cg_uring_init(struct cg_uring_ctx *ctx, int flags)
 {
@@ -74,7 +96,24 @@ sq_mmap_error:
 
 	return ret;
 }
+/******/
 
+/****f* cg_uring/cg_uring_sqe_get
+ * NAME
+ *   cg_uring_sqe_get
+ * SYNOPSIS
+ *   struct io_uring_sqe *cg_uring_sqe_get(struct cg_uring_ctx *ctx)
+ * FUNCTION
+ *   Obtains an available submission queue entry (SQE) from the
+ *   ring. The entry is zeroed using AVX2 instructions
+ *   before being returned to the caller.
+ * INPUTS
+ *   * ctx - Pointer to the io_uring context structure.
+ * RESULT
+ *   * Pointer to a zeroed io_uring_sqe structure ready for
+ *   population.
+ * SOURCE
+ */
 struct io_uring_sqe *
 cg_uring_sqe_get(struct cg_uring_ctx *ctx)
 {
@@ -84,7 +123,26 @@ cg_uring_sqe_get(struct cg_uring_ctx *ctx)
 	ctx->sqe_tail++;
 	return sqe;
 }
+/******/
 
+/****f* cg_uring/cg_uring_sq_enqueue
+ * NAME
+ *   cg_uring_sq_enqueue
+ * SYNOPSIS
+ *   int cg_uring_sq_enqueue(struct cg_uring_ctx *ctx, struct io_uring_sqe *sqe)
+ * FUNCTION
+ *   Submits a populated SQE to the tail of the submission queue.
+ *   It handles the necessary memory barriers and updates the
+ *   shared tail pointer to notify the kernel of the new entry.
+ *   If the kernel is in SQPOLL mode and requires a wakeup, it executes
+ *   the appropriate io_uring_enter syscall.
+ * INPUTS
+ *   * ctx - Pointer to the io_uring context structure.
+ *   * sqe - Pointer to the SQE to be submitted.
+ * RESULT
+ *   * Always returns 0.
+ * SOURCE
+ */
 int
 cg_uring_sq_enqueue(struct cg_uring_ctx *ctx, struct io_uring_sqe *sqe)
 {
@@ -102,7 +160,24 @@ cg_uring_sq_enqueue(struct cg_uring_ctx *ctx, struct io_uring_sqe *sqe)
 	}
 	return 0;
 }
+/******/
 
+/****f* cg_uring/cg_uring_cq_peek
+ * NAME
+ *   cg_uring_cq_peek
+ * SYNOPSIS
+ *   struct io_uring_cqe *cg_uring_cq_peek(struct cg_uring_ctx *ctx)
+ * FUNCTION
+ *   Checks the completion queue for any entries processed by
+ *   the kernel. It uses atomic load operations to
+ *   synchronize the shared head and tail pointers.
+ * INPUTS
+ *   * ctx - Pointer to the io_uring context structure.
+ * RESULT
+ *   * Pointer to the next available io_uring_cqe, or 0 if the
+ *   queue is empty.
+ * SOURCE
+ */
 struct io_uring_cqe *
 cg_uring_cq_peek(struct cg_uring_ctx *ctx)
 {
@@ -115,7 +190,27 @@ cg_uring_cq_peek(struct cg_uring_ctx *ctx)
 	struct io_uring_cqe *cqes = (struct io_uring_cqe *)ctx->cq.cqes.ptr;
 	return &cqes[head & mask];
 }
+/******/
 
+/****f* cg_uring/cg_uring_cqe_wait
+ * NAME
+ *   cg_uring_cqe_wait
+ * SYNOPSIS
+ *   int cg_uring_cqe_wait(struct cg_uring_ctx *ctx, struct io_uring_cqe **cqe_out)
+ * FUNCTION
+ *   Waits for at least one completion event to arrive in the
+ *   completion queue. If the queue is currently empty, it
+ *   invokes the io_uring_enter syscall to block until the kernel
+ *   produces an event.
+ * INPUTS
+ *   * ctx     - Pointer to the io_uring context structure.
+ *   * cqe_out - Pointer to a pointer that will receive the
+ *   address of the found CQE.
+ * RESULT
+ *   * 0 on success, or a negative error code if the syscall
+ *   fails.
+ * SOURCE
+ */
 int
 cg_uring_cqe_wait(struct cg_uring_ctx *ctx, struct io_uring_cqe **cqe_out)
 {
@@ -139,11 +234,27 @@ cg_uring_cqe_wait(struct cg_uring_ctx *ctx, struct io_uring_cqe **cqe_out)
 	*cqe_out = cqe;
 	return 0;
 }
+/******/
 
+/****f* cg_uring/cg_uring_cq_discard
+ * NAME
+ *   cg_uring_cq_discard
+ * SYNOPSIS
+ *   void cg_uring_cq_discard(struct cg_uring_ctx *ctx, int count)
+ * FUNCTION
+ *   Advances the head of the completion queue, effectively
+ *   "consuming" or discarding processed entries.
+ *   It uses an atomic store to notify the kernel that the entries
+ *   have been processed by userspace.
+ * INPUTS
+ *   * ctx   - Pointer to the io_uring context structure.
+ *   * count - The number of completion entries to discard.
+ * SOURCE
+ */
 void
 cg_uring_cq_discard(struct cg_uring_ctx *ctx, int count)
 {
 	uint32_t head = *(uint32_t *)ctx->cq.head.ptr;
 	__atomic_store_n((uint32_t *)ctx->cq.head.ptr, head + count, __ATOMIC_RELEASE);
 }
-
+/******/

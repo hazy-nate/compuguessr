@@ -2,38 +2,39 @@
   "id": "protocol_001",
   "type": "protocol",
   "difficulty": "easy",
-  "title": "Port of Call",
-  "description": "Analyze this intercepted network stream.",
+  "title": "Resolution Broadcast",
+  "description": "Analyze the hardware layer resolution request.",
   "codeblock": [
-    "47 45 54 20 2f 20 48 54 54 50 2f 31 2e 31 0d 0a",
-    "48 6f 73 74 3a 20 6c 6f 63 61 6c 68 6f 73 74 0d 0a"
+    "00 01 08 00 06 04 00 01 00 11 22 33 44 55 c0 a8",
+    "01 01 00 00 00 00 00 00 c0 a8 01 02"
+  ],
+  "hex_fields": [
+    { "start": 0, "length": 2, "name": "Hardware Type" },
+    { "start": 2, "length": 2, "name": "Protocol Type" },
+    { "start": 4, "length": 1, "name": "Hardware Size" },
+    { "start": 5, "length": 1, "name": "Protocol Size" },
+    { "start": 6, "length": 2, "name": "Opcode" },
+    { "start": 8, "length": 6, "name": "Sender MAC" },
+    { "start": 14, "length": 4, "name": "Sender IP" },
+    { "start": 18, "length": 6, "name": "Target MAC" },
+    { "start": 24, "length": 4, "name": "Target IP" }
   ],
   "questions": [
     {
       "id": 1,
-      "question": "What protocol is this stream utilizing?",
-      "type": "text",
-      "points": 25,
-      "answer": {
-        "type": "text",
-        "value": "HTTP",
-        "explanation": "The hex bytes 47 45 54 translate to the ASCII string 'GET', the primary method of the Hypertext Transfer Protocol."
-      }
-    },
-    {
-      "id": 2,
-      "question": "What is the standard port number for this protocol?",
+      "question": "Which field dictates whether this is a request or a reply?",
       "type": "multiple_choice",
-      "points": 25,
+      "points": 50,
       "responses": [
-        { "id": 1, "text": "21" },
-        { "id": 2, "text": "80" },
-        { "id": 3, "text": "443" }
+        { "id": 1, "text": "Hardware Type" },
+        { "id": 2, "text": "Protocol Type" },
+        { "id": 3, "text": "Opcode" },
+        { "id": 4, "text": "Target MAC" }
       ],
       "answer": {
         "type": "single",
-        "value": 2,
-        "explanation": "Port 80 is the default port for unencrypted HTTP traffic."
+        "value": 3,
+        "explanation": "The Opcode field (0x0001) dictates this is a request."
       }
     }
   ]

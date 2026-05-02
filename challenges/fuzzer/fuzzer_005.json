@@ -1,0 +1,42 @@
+{
+  "id": "fuzzer_005",
+  "type": "fuzzer",
+  "difficulty": "hard",
+  "title": "Logical Offset Contradiction",
+  "description": "The reassembly engine timed out and flagged this fragment as 'malformed' due to an internal offset inconsistency.",
+  "codeblock": [
+    "45 00 00 1c 1d 2e 20 00 40 01 e2 a1 c0 a8 01 0a",
+    "c0 a8 01 0b"
+  ],
+  "hex_fields": [
+    { "start": 0, "length": 1, "name": "Version / IHL" },
+    { "start": 1, "length": 1, "name": "DSCP / ECN" },
+    { "start": 2, "length": 2, "name": "Total Length" },
+    { "start": 4, "length": 2, "name": "Identification" },
+    { "start": 6, "length": 2, "name": "Flags / Fragment Offset" },
+    { "start": 8, "length": 1, "name": "Time to Live" },
+    { "start": 9, "length": 1, "name": "Protocol" },
+    { "start": 10, "length": 2, "name": "Header Checksum" },
+    { "start": 12, "length": 4, "name": "Source IP Address" },
+    { "start": 16, "length": 4, "name": "Destination IP Address" }
+  ],
+  "questions": [
+    {
+      "id": 1,
+      "question": "Which field contains the fuzzed value that prevents successful packet reassembly?",
+      "type": "multiple_choice",
+      "points": 50,
+      "responses": [
+        { "id": 1, "text": "Total Length" },
+        { "id": 2, "text": "Flags / Fragment Offset" },
+        { "id": 3, "text": "Protocol" },
+        { "id": 4, "text": "Header Checksum" }
+      ],
+      "answer": {
+        "type": "single",
+        "value": 2,
+        "explanation": "The 'Flags / Fragment Offset' field is 0x2000. This sets the 'More Fragments' (MF) flag while keeping the Fragment Offset at 0. However, the Total Length is 0x001C (28 bytes). With a 20-byte IP header, the payload is only 8 bytes. Most transport protocols require a larger initial fragment, and a 'More Fragments' flag on a packet this small often indicates a Teardrop-style attack or a fuzzed offset inconsistency."
+      }
+    }
+  ]
+}

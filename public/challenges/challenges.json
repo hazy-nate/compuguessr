@@ -2,171 +2,99 @@
   "version": "1.1",
   "challenges": [
     {
-      "id": "instruction_001",
-      "type": "instruction",
-      "difficulty": "easy",
-      "title": "Hello, world!",
-      "description": "Basic syscalls.",
-      "codeblock": [
-        "section .data",
-        "msg     db \"Hello, world!\"",
-        "len     equ $ - msg",
-        "",
-        "section .text",
-        "global _start",
-        "",
-        "_start:",
-        "    mov rax, 1      ; sys_write",
-        "    mov rdi, 1      ; stdout",
-        "    mov rsi, msg    ; buffer",
-        "    mov rdx, len    ; count",
-        "    syscall",
-        "",
-        "    mov rax, 60     ; sys_exit",
-        "    xor rdi, rdi    ; exit code 0",
-        "    syscall"
-      ],
-      "questions": [
-        {
-          "id": 1,
-          "question": "What is the output?",
-          "type": "text",
-          "points": 25
-        },
-        {
-          "id": 2,
-          "question": "What platform?",
-          "type": "multiple_response",
-          "points": 25,
-          "responses": [
-            {
-              "id": 1,
-              "text": "Windows"
-            },
-            {
-              "id": 2,
-              "text": "Linux"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "instruction_002",
-      "type": "instruction",
-      "difficulty": "easy",
-      "title": "Zero Out",
-      "description": "Analyze this common optimization technique.",
-      "codeblock": [
-        "xor rax, rax",
-        "ret"
-      ],
-      "questions": [
-        {
-          "id": 1,
-          "question": "What will be the value of the rax register after the first instruction?",
-          "type": "text",
-          "points": 25
-        },
-        {
-          "id": 2,
-          "question": "Why is this technique preferred over 'mov rax, 0'?",
-          "type": "multiple_choice",
-          "points": 25,
-          "responses": [
-            {
-              "id": 1,
-              "text": "It is a shorter instruction (fewer bytes)."
-            },
-            {
-              "id": 2,
-              "text": "It sets the ZF (Zero Flag)."
-            },
-            {
-              "id": 3,
-              "text": "Both of the above."
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "instruction_003",
-      "type": "instruction",
-      "difficulty": "medium",
-      "title": "Stack Shift",
-      "description": "Examine this function prologue.",
-      "codeblock": [
-        "push rbp",
-        "mov rbp, rsp",
-        "sub rsp, 0x20"
-      ],
-      "questions": [
-        {
-          "id": 1,
-          "question": "How many bytes of local stack space are being allocated?",
-          "type": "text",
-          "points": 25
-        },
-        {
-          "id": 2,
-          "question": "Which registers are modified by these instructions?",
-          "type": "multiple_response",
-          "points": 25,
-          "responses": [
-            {
-              "id": 1,
-              "text": "rbp"
-            },
-            {
-              "id": 2,
-              "text": "rsp"
-            },
-            {
-              "id": 3,
-              "text": "rax"
-            }
-          ]
-        }
-      ]
-    },
-    {
       "id": "fuzzer_001",
       "type": "fuzzer",
-      "difficulty": "easy",
-      "title": "Unbounded",
-      "description": "Identify the issue in this C fragment.",
+      "difficulty": "medium",
+      "title": "Segment 0x4A",
+      "description": "The processing daemon rejected this incoming segment, logging an 'Invalid Boundary' exception.",
       "codeblock": [
-        "void process_data(char *input) {",
-        "    char buffer[32];",
-        "    strcpy(buffer, input);",
-        "    printf(\"Data processed: %s\\n\", buffer);",
-        "}"
+        "45 00 00 14 12 34 00 00 40 06 a2 b4 c0 a8 01 01",
+        "c0 a8 01 02 00 50 01 bb 00 00 00 00 00 00 00 00"
+      ],
+      "hex_fields": [
+        {
+          "start": 0,
+          "length": 1,
+          "name": "Version / IHL"
+        },
+        {
+          "start": 1,
+          "length": 1,
+          "name": "DSCP / ECN"
+        },
+        {
+          "start": 2,
+          "length": 2,
+          "name": "Total Length"
+        },
+        {
+          "start": 4,
+          "length": 2,
+          "name": "Identification"
+        },
+        {
+          "start": 6,
+          "length": 2,
+          "name": "Flags / Fragment Offset"
+        },
+        {
+          "start": 8,
+          "length": 1,
+          "name": "Time to Live"
+        },
+        {
+          "start": 9,
+          "length": 1,
+          "name": "Protocol"
+        },
+        {
+          "start": 10,
+          "length": 2,
+          "name": "Header Checksum"
+        },
+        {
+          "start": 12,
+          "length": 4,
+          "name": "Source IP Address"
+        },
+        {
+          "start": 16,
+          "length": 4,
+          "name": "Destination IP Address"
+        },
+        {
+          "start": 20,
+          "length": 2,
+          "name": "TCP Source Port"
+        },
+        {
+          "start": 22,
+          "length": 2,
+          "name": "TCP Destination Port"
+        }
       ],
       "questions": [
         {
           "id": 1,
-          "question": "Which C standard library function introduces the vulnerability?",
-          "type": "text",
-          "points": 25
-        },
-        {
-          "id": 2,
-          "question": "What specific class of vulnerability is present?",
+          "question": "Which field creates the boundary conflict for the specified protocol?",
           "type": "multiple_choice",
-          "points": 25,
+          "points": 50,
           "responses": [
             {
               "id": 1,
-              "text": "Integer Overflow"
+              "text": "Total Length"
             },
             {
               "id": 2,
-              "text": "Use-After-Free"
+              "text": "Identification"
             },
             {
               "id": 3,
-              "text": "Buffer Overflow"
+              "text": "Time to Live"
+            },
+            {
+              "id": 4,
+              "text": "Protocol"
             }
           ]
         }
@@ -175,69 +103,431 @@
     {
       "id": "fuzzer_002",
       "type": "fuzzer",
-      "difficulty": "easy",
-      "title": "The Format",
-      "description": "A very permissive print statement.",
+      "difficulty": "hard",
+      "title": "State Transition Error",
+      "description": "An intrusion detection system dropped this segment before it reached the internal subnet.",
       "codeblock": [
-        "void log_message(char *user_controlled_input) {",
-        "    printf(user_controlled_input);",
-        "}"
+        "04 00 00 50 00 00 00 00 00 00 00 00 50 03 00 00",
+        "00 00 00 00"
+      ],
+      "hex_fields": [
+        {
+          "start": 0,
+          "length": 2,
+          "name": "Source Port"
+        },
+        {
+          "start": 2,
+          "length": 2,
+          "name": "Destination Port"
+        },
+        {
+          "start": 4,
+          "length": 4,
+          "name": "Sequence Number"
+        },
+        {
+          "start": 8,
+          "length": 4,
+          "name": "Acknowledgment Number"
+        },
+        {
+          "start": 12,
+          "length": 1,
+          "name": "Data Offset / Reserved"
+        },
+        {
+          "start": 13,
+          "length": 1,
+          "name": "Flags"
+        },
+        {
+          "start": 14,
+          "length": 2,
+          "name": "Window Size"
+        },
+        {
+          "start": 16,
+          "length": 2,
+          "name": "Checksum"
+        },
+        {
+          "start": 18,
+          "length": 2,
+          "name": "Urgent Pointer"
+        }
       ],
       "questions": [
         {
           "id": 1,
-          "question": "What type of vulnerability is present here?",
+          "question": "Which field violates state specifications?",
           "type": "multiple_choice",
-          "points": 25,
+          "points": 50,
           "responses": [
             {
               "id": 1,
-              "text": "Buffer Overflow"
+              "text": "Source Port"
             },
             {
               "id": 2,
-              "text": "Format String Vulnerability"
+              "text": "Sequence Number"
             },
             {
               "id": 3,
-              "text": "SQL Injection"
+              "text": "Flags"
+            },
+            {
+              "id": 4,
+              "text": "Window Size"
             }
           ]
-        },
-        {
-          "id": 2,
-          "question": "What format specifier could an attacker use to read memory off the stack?",
-          "type": "text",
-          "points": 25
         }
       ]
     },
     {
       "id": "fuzzer_003",
       "type": "fuzzer",
-      "difficulty": "medium",
-      "title": "Premature Evacuation",
-      "description": "Find the issue in this lifecycle.",
+      "difficulty": "easy",
+      "title": "Verification Failure",
+      "description": "A lightweight datagram was discarded by the kernel.",
       "codeblock": [
-        "void process_node(struct Node *node) {",
-        "    free(node);",
-        "    if (node->has_next) {",
-        "        process_node(node->next);",
-        "    }",
-        "}"
+        "c0 a8 00 10 d3 42 00 08 00 00"
+      ],
+      "hex_fields": [
+        {
+          "start": 0,
+          "length": 2,
+          "name": "Source Port"
+        },
+        {
+          "start": 2,
+          "length": 2,
+          "name": "Destination Port"
+        },
+        {
+          "start": 4,
+          "length": 2,
+          "name": "Length"
+        },
+        {
+          "start": 6,
+          "length": 2,
+          "name": "Checksum"
+        }
       ],
       "questions": [
         {
           "id": 1,
-          "question": "What is the name of this vulnerability?",
-          "type": "text",
-          "points": 25
+          "question": "Why was the payload rejected?",
+          "type": "multiple_choice",
+          "points": 50,
+          "responses": [
+            {
+              "id": 1,
+              "text": "The length is invalid for the header size."
+            },
+            {
+              "id": 2,
+              "text": "The checksum is zero over IPv6."
+            },
+            {
+              "id": 3,
+              "text": "The port is out of bounds."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fuzzer_004",
+      "type": "fuzzer",
+      "difficulty": "medium",
+      "title": "Overflow in Options",
+      "description": "The parser returned a 'Header Overflow' error when trying to process this segment[cite: 9, 10, 11].",
+      "codeblock": [
+        "4f 00 00 40 1a 2b 00 00 40 11 b1 c2 c0 a8 0a 01",
+        "c0 a8 0a ff"
+      ],
+      "hex_fields": [
+        {
+          "start": 0,
+          "length": 1,
+          "name": "Version / IHL"
         },
         {
-          "id": 2,
-          "question": "Which line number contains the dangerous dereference?",
+          "start": 1,
+          "length": 1,
+          "name": "DSCP / ECN"
+        },
+        {
+          "start": 2,
+          "length": 2,
+          "name": "Total Length"
+        },
+        {
+          "start": 4,
+          "length": 2,
+          "name": "Identification"
+        },
+        {
+          "start": 6,
+          "length": 2,
+          "name": "Flags / Fragment Offset"
+        },
+        {
+          "start": 8,
+          "length": 1,
+          "name": "Time to Live"
+        },
+        {
+          "start": 9,
+          "length": 1,
+          "name": "Protocol"
+        },
+        {
+          "start": 10,
+          "length": 2,
+          "name": "Header Checksum"
+        },
+        {
+          "start": 12,
+          "length": 4,
+          "name": "Source IP Address"
+        },
+        {
+          "start": 16,
+          "length": 4,
+          "name": "Destination IP Address"
+        }
+      ],
+      "questions": [
+        {
+          "id": 1,
+          "question": "Which field contains the fuzzed value causing the overflow exception[cite: 10]?",
+          "type": "multiple_choice",
+          "points": 50,
+          "responses": [
+            {
+              "id": 1,
+              "text": "Version / IHL"
+            },
+            {
+              "id": 2,
+              "text": "Total Length"
+            },
+            {
+              "id": 3,
+              "text": "Protocol"
+            },
+            {
+              "id": 4,
+              "text": "Destination IP Address"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fuzzer_005",
+      "type": "fuzzer",
+      "difficulty": "hard",
+      "title": "Logical Offset Contradiction",
+      "description": "The reassembly engine timed out and flagged this fragment as 'malformed' due to an internal offset inconsistency.",
+      "codeblock": [
+        "45 00 00 1c 1d 2e 20 00 40 01 e2 a1 c0 a8 01 0a",
+        "c0 a8 01 0b"
+      ],
+      "hex_fields": [
+        {
+          "start": 0,
+          "length": 1,
+          "name": "Version / IHL"
+        },
+        {
+          "start": 1,
+          "length": 1,
+          "name": "DSCP / ECN"
+        },
+        {
+          "start": 2,
+          "length": 2,
+          "name": "Total Length"
+        },
+        {
+          "start": 4,
+          "length": 2,
+          "name": "Identification"
+        },
+        {
+          "start": 6,
+          "length": 2,
+          "name": "Flags / Fragment Offset"
+        },
+        {
+          "start": 8,
+          "length": 1,
+          "name": "Time to Live"
+        },
+        {
+          "start": 9,
+          "length": 1,
+          "name": "Protocol"
+        },
+        {
+          "start": 10,
+          "length": 2,
+          "name": "Header Checksum"
+        },
+        {
+          "start": 12,
+          "length": 4,
+          "name": "Source IP Address"
+        },
+        {
+          "start": 16,
+          "length": 4,
+          "name": "Destination IP Address"
+        }
+      ],
+      "questions": [
+        {
+          "id": 1,
+          "question": "Which field contains the fuzzed value that prevents successful packet reassembly?",
+          "type": "multiple_choice",
+          "points": 50,
+          "responses": [
+            {
+              "id": 1,
+              "text": "Total Length"
+            },
+            {
+              "id": 2,
+              "text": "Flags / Fragment Offset"
+            },
+            {
+              "id": 3,
+              "text": "Protocol"
+            },
+            {
+              "id": 4,
+              "text": "Header Checksum"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "instruction_001",
+      "type": "instruction",
+      "difficulty": "easy",
+      "title": "Clearing Sequence",
+      "description": "Evaluate the state of the registers after execution.",
+      "codeblock": [
+        "mov rax, 0x100",
+        "xor rbx, rbx",
+        "add rbx, rax",
+        "shl rbx, 1"
+      ],
+      "questions": [
+        {
+          "id": 1,
+          "question": "What is the final integer value in rbx?",
           "type": "text",
-          "points": 25
+          "points": 50,
+          "ui_hints": {
+            "placeholder": "Decimal format"
+          }
+        }
+      ]
+    },
+    {
+      "id": "instruction_002",
+      "type": "instruction",
+      "difficulty": "medium",
+      "title": "Stack Swapping",
+      "description": "Trace the values as they traverse the stack.",
+      "codeblock": [
+        "mov rax, 50",
+        "mov rcx, 10",
+        "push rax",
+        "push rcx",
+        "pop rax",
+        "pop rcx"
+      ],
+      "questions": [
+        {
+          "id": 1,
+          "question": "What is the final integer value in rax?",
+          "type": "text",
+          "points": 50
+        }
+      ]
+    },
+    {
+      "id": "instruction_003",
+      "type": "instruction",
+      "difficulty": "hard",
+      "title": "ARM Conditionals",
+      "description": "Determine the execution path.",
+      "codeblock": [
+        "mov r0, #15",
+        "cmp r0, #20",
+        "movlt r1, #5",
+        "movge r1, #10"
+      ],
+      "questions": [
+        {
+          "id": 1,
+          "question": "What is the final integer value in r1?",
+          "type": "text",
+          "points": 50
+        }
+      ]
+    },
+    {
+      "id": "instruction_004",
+      "type": "instruction",
+      "difficulty": "medium",
+      "title": "Logical Masking",
+      "description": "Evaluate the bitwise operation outcome on the target register.",
+      "codeblock": [
+        "mov rax, 0xFF",
+        "mov rdx, 0x0F",
+        "and rax, rdx",
+        "not rax"
+      ],
+      "questions": [
+        {
+          "id": 1,
+          "question": "What is the final integer value in the low 8 bits of rax (al)?",
+          "type": "text",
+          "points": 50,
+          "ui_hints": {
+            "placeholder": "Decimal format"
+          }
+        }
+      ]
+    },
+    {
+      "id": "instruction_005",
+      "type": "instruction",
+      "difficulty": "hard",
+      "title": "Effective Address Calculation",
+      "description": "Calculate the final value in rbx after memory-style arithmetic.",
+      "codeblock": [
+        "mov rax, 10",
+        "mov rcx, 5",
+        "lea rbx, [rax + rcx * 4 + 7]"
+      ],
+      "questions": [
+        {
+          "id": 1,
+          "question": "What is the final integer value in rbx?",
+          "type": "text",
+          "points": 50,
+          "ui_hints": {
+            "placeholder": "Decimal format"
+          }
         }
       ]
     },
@@ -245,36 +535,81 @@
       "id": "protocol_001",
       "type": "protocol",
       "difficulty": "easy",
-      "title": "Port of Call",
-      "description": "Analyze this intercepted network stream.",
+      "title": "Resolution Broadcast",
+      "description": "Analyze the hardware layer resolution request.",
       "codeblock": [
-        "47 45 54 20 2f 20 48 54 54 50 2f 31 2e 31 0d 0a",
-        "48 6f 73 74 3a 20 6c 6f 63 61 6c 68 6f 73 74 0d 0a"
+        "00 01 08 00 06 04 00 01 00 11 22 33 44 55 c0 a8",
+        "01 01 00 00 00 00 00 00 c0 a8 01 02"
+      ],
+      "hex_fields": [
+        {
+          "start": 0,
+          "length": 2,
+          "name": "Hardware Type"
+        },
+        {
+          "start": 2,
+          "length": 2,
+          "name": "Protocol Type"
+        },
+        {
+          "start": 4,
+          "length": 1,
+          "name": "Hardware Size"
+        },
+        {
+          "start": 5,
+          "length": 1,
+          "name": "Protocol Size"
+        },
+        {
+          "start": 6,
+          "length": 2,
+          "name": "Opcode"
+        },
+        {
+          "start": 8,
+          "length": 6,
+          "name": "Sender MAC"
+        },
+        {
+          "start": 14,
+          "length": 4,
+          "name": "Sender IP"
+        },
+        {
+          "start": 18,
+          "length": 6,
+          "name": "Target MAC"
+        },
+        {
+          "start": 24,
+          "length": 4,
+          "name": "Target IP"
+        }
       ],
       "questions": [
         {
           "id": 1,
-          "question": "What protocol is this stream utilizing?",
-          "type": "text",
-          "points": 25
-        },
-        {
-          "id": 2,
-          "question": "What is the standard port number for this protocol?",
+          "question": "Which field dictates whether this is a request or a reply?",
           "type": "multiple_choice",
-          "points": 25,
+          "points": 50,
           "responses": [
             {
               "id": 1,
-              "text": "21"
+              "text": "Hardware Type"
             },
             {
               "id": 2,
-              "text": "80"
+              "text": "Protocol Type"
             },
             {
               "id": 3,
-              "text": "443"
+              "text": "Opcode"
+            },
+            {
+              "id": 4,
+              "text": "Target MAC"
             }
           ]
         }
@@ -284,62 +619,305 @@
       "id": "protocol_002",
       "type": "protocol",
       "difficulty": "medium",
-      "title": "Secure Shell",
-      "description": "A classic connection string.",
+      "title": "Control Message",
+      "description": "Review the network diagnostic transmission.",
       "codeblock": [
-        "53 53 48 2d 32 2e 30 2d 4f 70 65 6e 53 53 48 5f",
-        "38 2e 39 70 31 20 55 62 75 6e 74 75 0d 0a"
+        "08 00 4d 3b 00 01 00 01 61 62 63 64 65 66 67 68"
+      ],
+      "hex_fields": [
+        {
+          "start": 0,
+          "length": 1,
+          "name": "Type"
+        },
+        {
+          "start": 1,
+          "length": 1,
+          "name": "Code"
+        },
+        {
+          "start": 2,
+          "length": 2,
+          "name": "Checksum"
+        },
+        {
+          "start": 4,
+          "length": 2,
+          "name": "Identifier"
+        },
+        {
+          "start": 6,
+          "length": 2,
+          "name": "Sequence Number"
+        },
+        {
+          "start": 8,
+          "length": 8,
+          "name": "Data"
+        }
       ],
       "questions": [
         {
           "id": 1,
-          "question": "What protocol is advertising its version here?",
-          "type": "text",
-          "points": 25
-        },
-        {
-          "id": 2,
-          "question": "What is the standard TCP port for this service?",
-          "type": "text",
-          "points": 25
+          "question": "What is the primary function of this segment?",
+          "type": "multiple_choice",
+          "points": 50,
+          "responses": [
+            {
+              "id": 1,
+              "text": "Establish a reliable connection stream."
+            },
+            {
+              "id": 2,
+              "text": "Ping a remote host."
+            },
+            {
+              "id": 3,
+              "text": "Route packets dynamically."
+            }
+          ]
         }
       ]
     },
     {
       "id": "protocol_003",
       "type": "protocol",
-      "difficulty": "easy",
-      "title": "Domain Lookup",
-      "description": "Analyze this protocol standard.",
+      "difficulty": "hard",
+      "title": "Application Frame",
+      "description": "Inspect the application layer preamble.",
       "codeblock": [
-        "Standard port: 53",
-        "Transport: UDP (primarily)",
-        "Purpose: Translates human-readable names to IP addresses"
+        "16 03 01 00 c8 01 00 00 c4 03 03"
+      ],
+      "hex_fields": [
+        {
+          "start": 0,
+          "length": 1,
+          "name": "Content Type"
+        },
+        {
+          "start": 1,
+          "length": 2,
+          "name": "Legacy Version"
+        },
+        {
+          "start": 3,
+          "length": 2,
+          "name": "Length"
+        },
+        {
+          "start": 5,
+          "length": 1,
+          "name": "Handshake Type"
+        },
+        {
+          "start": 6,
+          "length": 3,
+          "name": "Handshake Length"
+        },
+        {
+          "start": 9,
+          "length": 2,
+          "name": "Client Version"
+        }
       ],
       "questions": [
         {
           "id": 1,
-          "question": "What protocol is being described?",
-          "type": "text",
-          "points": 25
-        },
-        {
-          "id": 2,
-          "question": "Which of these are valid record types for this protocol?",
-          "type": "multiple_response",
-          "points": 25,
+          "question": "Which field defines the record as a handshake initiation?",
+          "type": "multiple_choice",
+          "points": 50,
           "responses": [
             {
               "id": 1,
-              "text": "A"
+              "text": "Content Type"
             },
             {
               "id": 2,
-              "text": "TXT"
+              "text": "Legacy Version"
             },
             {
               "id": 3,
-              "text": "GET"
+              "text": "Handshake Type"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "protocol_004",
+      "type": "protocol",
+      "difficulty": "medium",
+      "title": "Address Configuration",
+      "description": "Analyze the dynamic host configuration initialization segment.",
+      "codeblock": [
+        "01 01 06 00 12 34 56 78 00 00 00 00 00 00 00 00",
+        "00 00 00 00 00 00 00 00 00 00 00 00 00 11 22 33",
+        "44 55 66"
+      ],
+      "hex_fields": [
+        {
+          "start": 0,
+          "length": 1,
+          "name": "Message Type (Op)"
+        },
+        {
+          "start": 1,
+          "length": 1,
+          "name": "Hardware Type"
+        },
+        {
+          "start": 2,
+          "length": 1,
+          "name": "Hardware Address Length"
+        },
+        {
+          "start": 3,
+          "length": 1,
+          "name": "Hops"
+        },
+        {
+          "start": 4,
+          "length": 4,
+          "name": "Transaction ID"
+        },
+        {
+          "start": 8,
+          "length": 2,
+          "name": "Seconds Elapsed"
+        },
+        {
+          "start": 10,
+          "length": 2,
+          "name": "Flags"
+        },
+        {
+          "start": 12,
+          "length": 4,
+          "name": "Client IP Address"
+        },
+        {
+          "start": 16,
+          "length": 4,
+          "name": "Your IP Address"
+        },
+        {
+          "start": 20,
+          "length": 4,
+          "name": "Server IP Address"
+        },
+        {
+          "start": 24,
+          "length": 4,
+          "name": "Gateway IP Address"
+        },
+        {
+          "start": 28,
+          "length": 6,
+          "name": "Client Hardware Address"
+        }
+      ],
+      "questions": [
+        {
+          "id": 1,
+          "question": "Based on the Client IP field, what is the current state of the sender?",
+          "type": "multiple_choice",
+          "points": 50,
+          "responses": [
+            {
+              "id": 1,
+              "text": "Renewing an existing lease."
+            },
+            {
+              "id": 2,
+              "text": "Discovering a server with no current IP."
+            },
+            {
+              "id": 3,
+              "text": "Declining a duplicate address."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "protocol_005",
+      "type": "protocol",
+      "difficulty": "hard",
+      "title": "Hierarchical Query",
+      "description": "Inspect the Domain Name System recursive lookup segment.",
+      "codeblock": [
+        "ab cd 01 00 00 01 00 00 00 00 00 00 06 67 6f 6f",
+        "67 6c 65 03 63 6f 6d 00 00 01 00 01"
+      ],
+      "hex_fields": [
+        {
+          "start": 0,
+          "length": 2,
+          "name": "Transaction ID"
+        },
+        {
+          "start": 2,
+          "length": 2,
+          "name": "Flags"
+        },
+        {
+          "start": 4,
+          "length": 2,
+          "name": "Questions"
+        },
+        {
+          "start": 6,
+          "length": 2,
+          "name": "Answer RRs"
+        },
+        {
+          "start": 8,
+          "length": 2,
+          "name": "Authority RRs"
+        },
+        {
+          "start": 10,
+          "length": 2,
+          "name": "Additional RRs"
+        },
+        {
+          "start": 12,
+          "length": 11,
+          "name": "Query Name"
+        },
+        {
+          "start": 23,
+          "length": 2,
+          "name": "Query Type"
+        },
+        {
+          "start": 25,
+          "length": 2,
+          "name": "Query Class"
+        }
+      ],
+      "questions": [
+        {
+          "id": 1,
+          "question": "Based on the Flags field, what is the role of this specific segment?",
+          "type": "multiple_choice",
+          "points": 50,
+          "responses": [
+            {
+              "id": 1,
+              "text": "A standard query with recursion desired."
+            },
+            {
+              "id": 2,
+              "text": "A response providing an authoritative answer."
+            },
+            {
+              "id": 3,
+              "text": "A server failure notification."
+            },
+            {
+              "id": 4,
+              "text": "An inverse query request."
             }
           ]
         }

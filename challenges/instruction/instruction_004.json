@@ -1,0 +1,29 @@
+{
+  "id": "instruction_004",
+  "type": "instruction",
+  "difficulty": "medium",
+  "title": "Logical Masking",
+  "description": "Evaluate the bitwise operation outcome on the target register.",
+  "codeblock": [
+    "mov rax, 0xFF",
+    "mov rdx, 0x0F",
+    "and rax, rdx",
+    "not rax"
+  ],
+  "questions": [
+    {
+      "id": 1,
+      "question": "What is the final integer value in the low 8 bits of rax (al)?",
+      "type": "text",
+      "points": 50,
+      "ui_hints": {
+        "placeholder": "Decimal format"
+      },
+      "answer": {
+        "type": "text",
+        "value": "240",
+        "explanation": "rax (0xFF / 11111111) is ANDed with rdx (0x0F / 00001111), resulting in 0x0F (00001111). The NOT operation flips these bits to 11110000, which is 0xF0 or 240 in decimal."
+      }
+    }
+  ]
+}

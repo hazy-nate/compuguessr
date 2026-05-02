@@ -1,3 +1,14 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
+/* Copyright (C) 2026 Nathaniel Williams */
+
+/****h* platform/cg_env.c
+ * NAME
+ *   cg_env.c
+ * FUNCTION
+ *   Environment and platform abstraction layer. Parses environment
+ *   variables and resolves system functions via the vDSO. [cite: 250-268]
+ ******/
+
 #include <elf.h>
 #include <sys/auxv.h>
 #include <sys/syscall.h>
@@ -11,6 +22,22 @@
 
 long g_base_addr = 0;
 
+/****f* platform/cg_env_init
+ * NAME
+ *   cg_env_init
+ * SYNOPSIS
+ *   __attribute__((weak)) void cg_env_init(char **envp, struct cg_env *env_out)
+ * FUNCTION
+ *   Initializes the environment configuration structure. It sets default
+ *   values for the FastCGI socket path and then parses the provided
+ *   environment pointer to find overrides. Additionally, it traverses
+ *   the auxiliary vector to determine the program's base address via
+ *   the AT_PHDR entry.
+ * INPUTS
+ *   * envp    - Pointer to the environment variable array.
+ *   * env_out - Pointer to the cg_env structure to be populated.
+ * SOURCE
+ */
 __attribute__((weak)) void
 cg_env_init(char **envp, struct cg_env *env_out)
 {
@@ -56,7 +83,21 @@ cg_env_init(char **envp, struct cg_env *env_out)
 		auxv++;
 	}
 }
+/******/
 
+/****f* platform/cg_env_write_stdout
+ * NAME
+ *   cg_env_write_stdout
+ * SYNOPSIS
+ *   __attribute__((weak)) void cg_env_write_stdout(struct cg_env *env)
+ * FUNCTION
+ *   Writes the current FastCGI socket configuration to standard output
+ *   for logging purposes. It utilizes the writev syscall to perform
+ *   a vectored write operation.
+ * INPUTS
+ *   * env - Pointer to the environment configuration structure.
+ * SOURCE
+ */
 __attribute__((weak)) void
 cg_env_write_stdout(struct cg_env *env)
 {
@@ -72,7 +113,22 @@ cg_env_write_stdout(struct cg_env *env)
 	/*====================================================================*/
 	syscall3(SYS_writev, STDOUT_FILENO, (long)iov, 3);
 }
+/******/
 
+/****f* platform/cg_vdso_base_addr
+ * NAME
+ *   cg_vdso_base_addr
+ * SYNOPSIS
+ *   __attribute__((weak)) long cg_vdso_base_addr(char **envp)
+ * FUNCTION
+ *   Locates the base address of the vDSO (Virtual Dynamic Shared Object)
+ *   by searching the auxiliary vector for the AT_SYSINFO_EHDR entry.
+ * INPUTS
+ *   * envp - Pointer to the environment variable array.
+ * RESULT
+ *   * The memory address of the vDSO header, or 0 if not found.
+ * SOURCE
+ */
 __attribute__((weak)) long
 cg_vdso_base_addr(char **envp)
 {
@@ -95,7 +151,25 @@ cg_vdso_base_addr(char **envp)
 	}
 	return vdso_addr;
 }
+/******/
 
+/****f* platform/cg_vdso_func
+ * NAME
+ *   cg_vdso_func
+ * SYNOPSIS
+ *   __attribute__((weak)) cg_generic_func_t cg_vdso_func(long vdso_base_addr, char *name)
+ * FUNCTION
+ *   Manually parses the ELF structures within the vDSO memory region
+ *   to resolve a specific symbol by name. It traverses the program
+ *   headers to find the dynamic section, and then searches the symbol
+ *   table for a match.
+ * INPUTS
+ *   * vdso_base_addr - The base address where the vDSO is mapped.
+ *   * name           - The name of the function to resolve.
+ * RESULT
+ *   * A pointer to the resolved function, or 0 if the symbol is not found.
+ * SOURCE
+ */
 __attribute__((weak)) cg_generic_func_t
 cg_vdso_func(long vdso_base_addr, char *name)
 {
@@ -151,3 +225,4 @@ cg_vdso_func(long vdso_base_addr, char *name)
 	}
 	return 0;
 }
+/******/

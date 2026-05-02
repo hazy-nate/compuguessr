@@ -4,9 +4,12 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /* Copyright (C) 2026 Nathaniel Williams */
 
-/****h* core/cg_fastcgi.h, core/cg_fastcgi
+/****h* core/cg_fastcgi.h
  * NAME
  *   cg_fastcgi.h
+ * FUNCTION
+ *   Definitions and structures for the FastCGI protocol, including
+ *   record types, roles, and client buffer management.
  ******/
 
 /*==============================================================================

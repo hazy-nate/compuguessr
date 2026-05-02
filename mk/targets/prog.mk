@@ -9,7 +9,7 @@ TARGETS	+= $(PROG)
 
 $(PROG)_VERSION 	:= 0.1
 $(PROG)_TYPE		:= EXE
-$(PROG)_LDFLAGS		:= -e _start -z relro -z now
+$(PROG)_LDFLAGS		:= -e _start -z relro -z now -pie
 $(PROG)_LDLIBS		:=
 $(PROG)_DEPS		:=
 
@@ -25,9 +25,14 @@ endif
 
 $(PROG)_OUT := $(BIN_OUT_DIR)/$(PROG)
 
-.PHONY: prog
+.PHONY: challenges prog
+
+challenges:
+	scripts/process_challenges.py
 
 prog: $($(PROG)_OUT)
+
+$(BUILD_OUT_DIR)/src/data/cg_challengedb_data.i: challenges
 
 include $(SRC_DIR)/prog.build.mk
 

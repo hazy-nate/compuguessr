@@ -1,9 +1,12 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /* Copyright (C) 2026 Nathaniel Williams */
 
-/****h* app/main.c
+/****h* app/cg_main.c
  * NAME
- * main.c
+ *   cg_main.c
+ * FUNCTION
+ *   Core application entry point and main event loop. Manages the
+ *   io_uring context, socket lifecycle, and global timestamp ticks. [cite: 18-59]
  ******/
 
 #define _SYS_SOCKET_H
@@ -44,11 +47,26 @@ __attribute__((aligned(32), section(".bss"))) static struct cg_client_ctx g_cli_
 __attribute__((aligned(32), section(".bss"))) static struct cg_hashmap_entry g_route_map_entries[32];
 __attribute__((aligned(32), section(".bss"))) static struct cg_hashmap g_route_map;
 
-struct cg_sessiondb *g_sessiondb;
-struct cg_userdb *g_userdb;
+extern struct cg_sessiondb *g_sessiondb;
+extern struct cg_userdb *g_userdb;
 
 __attribute__((naked, noreturn, used)) void start(void) __asm__("_start");
 
+/****f* cg_main/cg_main_init
+ * NAME
+ *   cg_main_init
+ * SYNOPSIS
+ *   static void cg_main_init(const unsigned long *stack)
+ * FUNCTION
+ *   Initializes the core global state of the application. This includes:
+ *   * Initializing system time and environment configurations from the stack.
+ *   * Setting up the global timestamp buffer and tick interval.
+ *   * Configuring the global route hashmap.
+ *   * Initializing memory-mapped session and user databases.
+ * INPUTS
+ *   * stack - Pointer to the initial process stack containing argc and envp.
+ * SOURCE
+ */
 static void
 cg_main_init(const unsigned long *stack)
 {
@@ -68,7 +86,21 @@ cg_main_init(const unsigned long *stack)
 	g_sessiondb = cg_sessiondb_init("/tmp/cg_sessions.db");
 	g_userdb = cg_userdb_init("/tmp/cg_users.db");
 }
+/******/
 
+/****f* cg_main/cg_main_timestamp_tick
+ * NAME
+ *   cg_main_timestamp_tick
+ * SYNOPSIS
+ *   static void cg_main_timestamp_tick(struct cg_uring_ctx *ctx, struct __kernel_timespec *ts)
+ * FUNCTION
+ *   Updates the global timestamp string and enqueues a new timeout operation
+ *   into the io_uring submission queue to trigger the next tick.
+ * INPUTS
+ *   * ctx - Pointer to the io_uring context.
+ *   * ts  - Pointer to the timespec defining the tick interval.
+ * SOURCE
+ */
 static void
 cg_main_timestamp_tick(struct cg_uring_ctx *ctx, struct __kernel_timespec *ts)
 {
@@ -85,7 +117,21 @@ cg_main_timestamp_tick(struct cg_uring_ctx *ctx, struct __kernel_timespec *ts)
         sqe->user_data = CG_TAG_TIMESTAMP;
         cg_uring_sq_enqueue(ctx, sqe);
 }
+/******/
 
+/****f* cg_main/cg_main_fastcgi_setup
+ * NAME
+ *   cg_main_fastcgi_setup
+ * SYNOPSIS
+ *   static void cg_main_fastcgi_setup(struct cg_fastcgi_ctx *ctx)
+ * FUNCTION
+ *   Sets up the FastCGI listening socket. It unlinks any existing socket
+ *   at the configured path, creates a new AF_UNIX socket, binds it, and
+ *   begins listening for incoming connections.
+ * INPUTS
+ *   * ctx - Pointer to the FastCGI context to initialize.
+ * SOURCE
+ */
 static void
 cg_main_fastcgi_setup(struct cg_fastcgi_ctx *ctx)
 {
@@ -121,7 +167,21 @@ cg_main_fastcgi_setup(struct cg_fastcgi_ctx *ctx)
 	cg_datetime_str_get(g_ts_buf);
 	cg_log_write_ts_note(g_ts_buf, "Listening on the socket\n");
 }
+/******/
 
+/****f* cg_main/cg_main_fastcgi_state_handle
+ * NAME
+ *   cg_main_fastcgi_state_handle
+ * SYNOPSIS
+ *   static void cg_main_fastcgi_state_handle(struct cg_uring_ctx *uring_ctx, struct cg_fastcgi_ctx *fastcgi_ctx)
+ * FUNCTION
+ *   Manages the state of the FastCGI listening socket. If the context is
+ *   ready to accept, it enqueues a multishot IORING_OP_ACCEPT SQE.
+ * INPUTS
+ *   * uring_ctx   - Pointer to the io_uring context.
+ *   * fastcgi_ctx - Pointer to the FastCGI context.
+ * SOURCE
+ */
 static void
 cg_main_fastcgi_state_handle(struct cg_uring_ctx *uring_ctx, struct cg_fastcgi_ctx *fastcgi_ctx)
 {
@@ -141,7 +201,21 @@ cg_main_fastcgi_state_handle(struct cg_uring_ctx *uring_ctx, struct cg_fastcgi_c
 	cg_datetime_str_get(g_ts_buf);
 	cg_log_write_ts_note(g_ts_buf, "Enqueued accept operation SQE\n");
 }
+/******/
 
+/****f* cg_main/cg_main_fastcgi_cqe_handle
+ * NAME
+ *   cg_main_fastcgi_cqe_handle
+ * SYNOPSIS
+ *   static void cg_main_fastcgi_cqe_handle(struct cg_fastcgi_ctx *ctx, struct io_uring_cqe *cqe)
+ * FUNCTION
+ *   Processes completion queue entries (CQE) related to the FastCGI listener.
+ *   On a successful accept, it allocates a client context and initializes it.
+ * INPUTS
+ *   * ctx - Pointer to the FastCGI context.
+ *   * cqe - Pointer to the io_uring completion entry.
+ * SOURCE
+ */
 static void
 cg_main_fastcgi_cqe_handle(struct cg_fastcgi_ctx *ctx, struct io_uring_cqe *cqe)
 {
@@ -172,7 +246,22 @@ cg_main_fastcgi_cqe_handle(struct cg_fastcgi_ctx *ctx, struct io_uring_cqe *cqe)
 		break;
 	}
 }
+/******/
 
+/****f* cg_main/cg_main_client_state_handle
+ * NAME
+ *   cg_main_client_state_handle
+ * SYNOPSIS
+ *   void cg_main_client_state_handle(struct cg_uring_ctx *uring_ctx, struct cg_client_ctx *cli_ctx)
+ * FUNCTION
+ *   Transitions the state of an individual client by enqueuing necessary
+ *   io_uring operations (READ, WRITE, or CLOSE) based on the current
+ *   client context state.
+ * INPUTS
+ *   * uring_ctx - Pointer to the io_uring context.
+ *   * cli_ctx   - Pointer to the specific client context to handle.
+ * SOURCE
+ */
 void
 cg_main_client_state_handle(struct cg_uring_ctx *uring_ctx, struct cg_client_ctx *cli_ctx)
 {
@@ -228,7 +317,24 @@ cg_main_client_state_handle(struct cg_uring_ctx *uring_ctx, struct cg_client_ctx
 		break;
 	}
 }
+/******/
 
+/****f* cg_main/cg_main_client_cqe_handle
+ * NAME
+ *   cg_main_client_cqe_handle
+ * SYNOPSIS
+ *   void cg_main_client_cqe_handle(struct cg_client_ctx *cli_ctx, struct io_uring_cqe *cqe)
+ * FUNCTION
+ *   Handles io_uring completions for a specific client. This includes:
+ *   * Processing data read from the socket and invoking the FastCGI parser.
+ *   * Routing the request and preparing a response if the FastCGI record is ready.
+ *   * Managing write completions and persistent (keep-alive) connection logic.
+ *   * Handling socket closures and resource cleanup.
+ * INPUTS
+ *   * cli_ctx - Pointer to the client context.
+ *   * cqe     - Pointer to the completion queue entry.
+ * SOURCE
+ */
 void
 cg_main_client_cqe_handle(struct cg_client_ctx *cli_ctx, struct io_uring_cqe *cqe)
 {
@@ -291,6 +397,7 @@ cg_main_client_cqe_handle(struct cg_client_ctx *cli_ctx, struct io_uring_cqe *cq
 		break;
 	}
 }
+/******/
 
 __attribute__((naked, noreturn, used)) void
 start(void)
@@ -300,6 +407,20 @@ start(void)
 			 "call main\n");
 }
 
+/****f* cg_main/main
+ * NAME
+ *   main
+ * SYNOPSIS
+ *   __attribute__((noreturn, used)) void main(const unsigned long *stack)
+ * FUNCTION
+ *   The primary entry point of the application. It initializes all
+ *   subsystems (io_uring, environment, FastCGI, route maps, databases)
+ *   and enters the main event loop to handle FastCGI connections and
+ *   internal ticks.
+ * INPUTS
+ *   * stack - Pointer to the initial process stack.
+ * SOURCE
+ */
 __attribute__((noreturn, used)) void
 main(const unsigned long *stack)
 {
@@ -345,3 +466,4 @@ main(const unsigned long *stack)
 	syscall1(SYS_exit, EXIT_SUCCESS);
 	__builtin_unreachable();
 }
+/******/

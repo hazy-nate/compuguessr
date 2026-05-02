@@ -4,9 +4,12 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /* Copyright (C) 2026 Nathaniel Williams */
 
-/****h* data/cg_hashmap.h, data/cg_hashmap
+/****h* data/cg_hashmap.h
  * NAME
  *   cg_hashmap.h
+ * FUNCTION
+ *   Generic hashmap data structure definitions supporting 64-bit
+ *   integer keys and pointer-based values.
  ******/
 
 /*==============================================================================

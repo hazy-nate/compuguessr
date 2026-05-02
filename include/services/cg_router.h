@@ -4,9 +4,12 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /* Copyright (C) 2026 Nathaniel Williams */
 
-/****h* services/cg_router.h, services/cg_router
+/****h* services/cg_router.h
  * NAME
  *   cg_router.h
+ * FUNCTION
+ *   API routing service interface, defining the function signatures
+ *   for URI endpoint handlers.
  ******/
 
 /*==============================================================================

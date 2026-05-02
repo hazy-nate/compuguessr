@@ -2,57 +2,26 @@
   "id": "instruction_001",
   "type": "instruction",
   "difficulty": "easy",
-  "title": "Hello, world!",
-  "description": "Basic syscalls.",
+  "title": "Clearing Sequence",
+  "description": "Evaluate the state of the registers after execution.",
   "codeblock": [
-    "section .data",
-    "msg     db \"Hello, world!\"",
-    "len     equ $ - msg",
-    "",
-    "section .text",
-    "global _start",
-    "",
-    "_start:",
-    "    mov rax, 1      ; sys_write",
-    "    mov rdi, 1      ; stdout",
-    "    mov rsi, msg    ; buffer",
-    "    mov rdx, len    ; count",
-    "    syscall",
-    "",
-    "    mov rax, 60     ; sys_exit",
-    "    xor rdi, rdi    ; exit code 0",
-    "    syscall"
+    "mov rax, 0x100",
+    "xor rbx, rbx",
+    "add rbx, rax",
+    "shl rbx, 1"
   ],
   "questions": [
     {
       "id": 1,
-      "question": "What is the output?",
+      "question": "What is the final integer value in rbx?",
       "type": "text",
-      "points": 25,
+      "points": 50,
+      "ui_hints": {"placeholder": "Decimal format"},
       "answer": {
         "type": "text",
-        "value": "Hello, world!",
-        "explanation": "The rax=1 syscall is 'sys_write', which prints our string to STDOUT."
+        "value": "512",
+        "explanation": "rbx is zeroed, 0x100 (256) is added, and it is logically shifted left by 1 (multiplied by 2), resulting in 512."
       }
-    },
-    {
-      "id": 2,
-      "question": "What platform?",
-      "type": "multiple_response",
-      "points": 25,
-      "responses": [
-        {
-          "id": 1,
-          "text": "Windows",
-          "explanation": "Incorrect. Windows uses the NT kernel API, not Linux syscall numbers."
-        },
-        {
-          "id": 2,
-          "text": "Linux",
-          "explanation": "Correct. Syscalls 1 (write) and 60 (exit) match the x86_64 Linux ABI."
-        }
-      ],
-      "answer": { "type": "bitmask", "value": 2 }
     }
   ]
 }

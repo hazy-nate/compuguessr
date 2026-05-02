@@ -4,9 +4,12 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /* Copyright (C) 2026 Nathaniel Williams */
 
-/****h* platform/cg_env.h, platform/cg_env
+/****h* platform/cg_env.h
  * NAME
  *   cg_env.h
+ * FUNCTION
+ *   Environment configuration management and vDSO function
+ *   pointer definitions.
  ******/
 
 /*==============================================================================

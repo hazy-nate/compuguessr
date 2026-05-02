@@ -24,13 +24,23 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y clang gcc make mold nasm python3
+        sudo apt-get install -y make python3-pytest python3-requests
 
-    - name: Compile
-      run: make debug
+    - name: Compile with development image
+      run: |
+        make docker-build-native
+        docker compose run --name cg_builder compuguessr-dev-native make debug
+
+    - name: Extract and Prepare Binary
+      run: |
+        mkdir -p bin/debug build/debug
+        docker cp cg_builder:/app/bin/debug/compuguessr ./bin/debug/compuguessr
+        docker cp cg_builder:/app/build/debug ./build/
+        docker rm cg_builder
+        chmod +x bin/debug/compuguessr
 
     - name: Run tests
-      run: python3 tests/test_fcgi.py
+      run: pytest test
 
     - name: Verify build artifacts
       run: |

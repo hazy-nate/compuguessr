@@ -1,3 +1,13 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
+/* Copyright (C) 2026 Nathaniel Williams */
+
+/****h* platform/cg_time.c
+ * NAME
+ *   cg_time.c
+ * FUNCTION
+ *   High-performance time subsystem. Utilizes the vDSO for low-latency
+ *   timestamping and provides optimized datetime string formatting. [cite: 236-249]
+ ******/
 
 #include <linux/time.h>
 #include <stddef.h>
@@ -12,6 +22,20 @@
 
 __attribute__((aligned(32), section(".bss"))) static cg_vdso_gettime_t g_vdso_gettime;
 
+/****f* platform/cg_time_init
+ * NAME
+ *   cg_time_init
+ * SYNOPSIS
+ *   __attribute__((weak)) void cg_time_init(char **envp)
+ * FUNCTION
+ *   Initializes the time subsystem by attempting to locate the vDSO
+ *   function "__vdso_clock_gettime". It retrieves the vDSO base
+ *   address from the environment pointer and resolves the
+ *   specific function pointer for high-performance time retrieval.
+ * INPUTS
+ *   * envp - Pointer to the environment variable array.
+ * SOURCE
+ */
 __attribute__((weak)) void
 cg_time_init(char **envp)
 {
@@ -19,7 +43,22 @@ cg_time_init(char **envp)
 	g_vdso_gettime = (cg_vdso_gettime_t)cg_vdso_func(vdso_base_addr,
 	    "__vdso_clock_gettime");
 }
+/******/
 
+/****f* platform/cg_time_get
+ * NAME
+ *   cg_time_get
+ * SYNOPSIS
+ *   __attribute__((weak)) uint64_t cg_time_get(void)
+ * FUNCTION
+ *   Returns the current Unix timestamp in seconds. It prefers
+ *   using the mapped vDSO gettime function for performance. If
+ *   the vDSO is unavailable, it falls back to a standard
+ *   SYS_time syscall.
+ * RESULT
+ *   * The current time in seconds since the Epoch.
+ * SOURCE
+ */
 __attribute__((weak)) uint64_t
 cg_time_get(void)
 {
@@ -30,7 +69,24 @@ cg_time_get(void)
 	g_vdso_gettime(CLOCK_REALTIME, &ts);
 	return (uint64_t)ts.tv_sec;
 }
+/******/
 
+/****f* platform/cg_datetime_str_get
+ * NAME
+ *   cg_datetime_str_get
+ * SYNOPSIS
+ *   __attribute__((target("avx2,bmi2"),weak)) void cg_datetime_str_get(char *out)
+ * FUNCTION
+ *   Generates a formatted date and time string (YYYY-MM-DD HH:MM:SS).
+ *   The function performs highly optimized integer math and
+ *   division to convert the raw Unix epoch seconds into calendar
+ *   fields. It utilizes specialized division helpers and AVX2/BMI2
+ *   instructions for maximum performance.
+ * INPUTS
+ *   * out - Pointer to a buffer of at least 20 bytes to receive
+ *   the formatted string.
+ * SOURCE
+ */
 __attribute__((target("avx2,bmi2"),weak)) void
 cg_datetime_str_get(char *out)
 {
@@ -60,3 +116,4 @@ cg_datetime_str_get(char *out)
 	cg_write_digits2(&out[14], minutes);
 	cg_write_digits2(&out[17], secs);
 }
+/******/

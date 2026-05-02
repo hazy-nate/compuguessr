@@ -4,10 +4,13 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /* Copyright (C) 2026 Nathaniel Williams */
 
-/****h* util/cg_util.h, util/cg_util
+/****h* util/cg_util.h
  * NAME
  *   cg_util.h
- */
+ * FUNCTION
+ *   General utility functions, including AVX2-optimized memory
+ *   operations, string handling, and fast integer division.
+ ******/
 
 /*==============================================================================
  * SYSTEM HEADERS

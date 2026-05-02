@@ -1,56 +1,13 @@
 const MOCK_DB = {
   "version": "1.1",
-  "challenges": [
-    {
-      "id": "instruction_001",
-      "type": "instruction",
-      "difficulty": "easy",
-      "title": "Hello, world!",
-      "description": "Analyze this basic assembly snippet.",
-      "codeblock": [
-        "section .data",
-        "msg     db \"Hello, world!\"",
-        "len     equ $ - msg",
-        "",
-        "section .text",
-        "global _start",
-        "",
-        "_start:",
-        "    mov rax, 1",
-        "    mov rdi, 1",
-        "    mov rsi, msg",
-        "    mov rdx, len",
-        "    syscall"
-      ],
-      "questions": [
-        {
-          "id": 1,
-          "question": "What is the output of this program?",
-          "type": "text",
-          "points": 25,
-          "ui_hints": {"placeholder": "Exact output..."}
-        },
-        {
-          "id": 2,
-          "question": "Which operating system is this written for?",
-          "type": "multiple_response",
-          "points": 25,
-          "responses": [
-            {"id": 1, "text": "Windows NT"},
-            {"id": 2, "text": "Linux (x86_64)"},
-            {"id": 3, "text": "FreeBSD"}
-          ]
-        }
-      ]
-    }
-  ]
+  "challenges": []
 };
 
 const state = {
     challenges: [],
     currentChallenge: null,
     leaderboard: [],
-    config: { category: null, playerName: null, points: 0, isGuest: false }
+    config: { category: null, playerName: null, points: 0, isGuest: false, description: "", completedCount: 0, completedHashes: [] }
 };
 
 const appDiv = document.getElementById('app');
@@ -66,27 +23,57 @@ window.addEventListener('load', () => {
     initApp();
 });
 
+function hashStr(str) {
+    let hash = 5381n;
+    for (let i = 0; i < str.length; i++) {
+        hash = ((hash << 5n) + hash) + BigInt(str.charCodeAt(i));
+    }
+    return hash.toString();
+}
+
+function escapeHTML(str) {
+    if (!str) return "";
+    return str.toString().replace(/[&<>'"]/g, tag => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        "'": '&#39;',
+        '"': '&quot;'
+    }[tag] || tag));
+}
+
+function sanitizeHTML(str) {
+    if (!str) return "";
+    if (typeof DOMPurify !== 'undefined') {
+        return DOMPurify.sanitize(str, {
+            ADD_TAGS: ['iframe', 'img'],
+            ADD_ATTR: ['allow', 'allowfullscreen', 'frameborder', 'scrolling', 'src', 'alt', 'width', 'height', 'target']
+        });
+    }
+    return escapeHTML(str);
+}
+
 async function initApp() {
     try {
         const res = await fetch('/api/user/profile', {
             method: 'GET',
             credentials: 'same-origin'
         });
-
         if (res.ok) {
             const data = await res.json();
             state.config.playerName = data.username;
             state.config.points = data.total_points || 0;
             state.config.isGuest = data.is_guest || false;
+            state.config.description = data.description || "";
+            state.config.completedCount = data.completed_count || 0;
+            state.config.completedHashes = data.completed_hashes || [];
         } else if (res.status === 401) {
             document.cookie = "SESSION=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
             state.config.playerName = null;
             state.config.points = 0;
             state.config.isGuest = false;
         }
-    } catch (err) {
-        console.warn("Could not fetch profile.", err);
-    }
+    } catch (err) {}
     renderMainMenu();
 }
 
@@ -97,73 +84,65 @@ function transitionView(newHTML, callback = null) {
         void appDiv.offsetWidth;
         appDiv.classList.remove('view-hidden');
         if (callback) callback();
-    }, 250);
+    }, 400);
 }
 
 function getMainMenuHTML() {
     let lbHtml = '';
     if (state.leaderboard && state.leaderboard.length > 0) {
+        lbHtml += `<table class="table-custom"><tbody>`;
         state.leaderboard.forEach((user, idx) => {
-            let rankStyle = idx === 0 ? 'text-warning fw-bold' : (idx === 1 ? 'text-light' : (idx === 2 ? 'text-info' : 'text-secondary'));
+            let rankClass = idx === 0 ? 'rank-1' : (idx === 1 ? 'rank-2' : (idx === 2 ? 'rank-3' : 'text-secondary'));
             lbHtml += `
-            <div class="d-flex justify-content-between align-items-center mb-3 p-2 border-bottom border-secondary" style="background: rgba(0,0,0,0.2);">
-                <div>
-                    <span class="${rankStyle} me-3 code-font">#${idx + 1}</span>
-                    <span class="text-light code-font">${user.username}</span>
-                </div>
-                <span class="badge bg-dark border border-secondary code-font">${user.points} pts</span>
-            </div>`;
+            <tr>
+                <td class="code-font ${rankClass}" style="width: 15%;">0${idx + 1}</td>
+                <td><span class="code-font text-light" style="cursor:pointer;" onclick="renderPublicProfile('${escapeHTML(user.username)}')">${escapeHTML(user.username)}</span></td>
+                <td class="text-end code-font hex-accent">${user.points}</td>
+            </tr>`;
         });
+        lbHtml += `</tbody></table>`;
     } else {
-        lbHtml = `<p class="text-secondary small text-center code-font py-4">No ranked operators yet.</p>`;
+        lbHtml = `<p class="text-secondary small code-font py-4">NO PLAYERS</p>`;
     }
 
     return `
-    <div class="row align-items-center g-5">
-        <div class="col-lg-7 text-lg-start text-center">
-            <div class="mb-3 d-flex justify-content-between align-items-center">
-                <span class="badge rounded-pill border border-info text-info px-3 py-2 code-font">v0.1</span>
-                ${state.config.playerName && !state.config.isGuest
-                    ? `<button class="btn btn-sm btn-outline-info code-font" onclick="renderProfile()">Profile (${state.config.points} pts)</button>`
-                    : `<button class="btn btn-sm btn-outline-info code-font px-3" onclick="renderAuth()">Login / Register</button>`
-                }
-            </div>
-            <h1 class="display-3 fw-bold mb-3">Compu<span class="hex-accent">Guessr</span></h1>
-            <p class="lead text-secondary mb-5 pe-lg-5">
-                Examine raw data, decode assembly snippets, or find vulnerabilities before the time runs out.
+    <div class="row mb-5 pb-4 border-bottom" style="border-color: rgba(255,255,255,0.05) !important;">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <span class="code-font text-secondary" style="letter-spacing: 0.2em;">CG.01</span>
+            ${state.config.playerName && !state.config.isGuest
+                ? `<button class="btn btn-outline-info" onclick="renderProfile()">${escapeHTML(state.config.playerName)} [${state.config.points}]</button>`
+                : `<button class="btn btn-outline-info" onclick="renderAuth()">LOG IN / SIGN UP</button>`
+            }
+        </div>
+    </div>
+
+    <div class="row g-5 flex-grow-1">
+        <div class="col-xl-8 d-flex flex-column">
+            <h1 class="display-1 fw-bold mb-4" style="line-height: 1;">COMPU<span class="hex-accent">.</span>GUESSR</h1>
+            <p class="text-secondary mb-5 w-75" style="font-size: 1.1rem;">
+                Examine raw data, decode assembly snippets, and locate vulnerabilities.
+                A gamified technical analysis platform.
             </p>
-            <div class="row g-3">
-                <div class="col-md-4">
-                    <div class="card category-card h-100 p-3" onclick="startGame('protocol')">
-                        <div class="card-body p-0 text-center text-lg-start">
-                            <h4 class="fw-bold hex-accent mb-2">Protocol</h4>
-                            <p class="text-secondary small mb-0">Packet captures, network layers, and hex decoding.</p>
-                        </div>
-                    </div>
+
+            <div class="grid-categories">
+                <div class="category-card" onclick="startGame('protocol')">
+                    <h3>Protocol</h3>
+                    <p class="small mb-0 code-font">PACKET CAPTURES / HEX DECODING / LAYER ANALYSIS</p>
                 </div>
-                <div class="col-md-4">
-                    <div class="card category-card h-100 p-3" onclick="startGame('instruction')">
-                        <div class="card-body p-0 text-center text-lg-start">
-                            <h4 class="fw-bold text-danger mb-2">Instruction</h4>
-                            <p class="text-secondary small mb-0">x86_64, ARM, opcode analysis and reverse engineering.</p>
-                        </div>
-                    </div>
+                <div class="category-card" onclick="startGame('instruction')">
+                    <h3>Instruction</h3>
+                    <p class="small mb-0 code-font">OPCODES / REGISTERS / REVERSE ENGINEERING</p>
                 </div>
-                <div class="col-md-4">
-                    <div class="card category-card h-100 p-3" onclick="startGame('fuzzer')">
-                        <div class="card-body p-0 text-center text-lg-start">
-                            <h4 class="fw-bold text-warning mb-2">Fuzzer</h4>
-                            <p class="text-secondary small mb-0">Spot the buffer overflow, segfaults, and memory leaks.</p>
-                        </div>
-                    </div>
-                 </div>
+                <div class="category-card" onclick="startGame('fuzzer')">
+                    <h3>Fuzzer</h3>
+                    <p class="small mb-0 code-font">BUFFER OVERFLOWS / CORRUPTION / EXPLOITS</p>
+                </div>
             </div>
         </div>
-        <div class="col-lg-5">
-            <div class="glass-panel p-4 shadow-lg">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h4 class="mb-0 fw-bold">Leaderboard</h4>
-                </div>
+
+        <div class="col-xl-4">
+            <div class="glass-panel p-5 h-100">
+                <h4 class="mb-5 code-font" style="font-size: 0.9rem; letter-spacing: 0.2em; color: #888;">LEADERBOARD</h4>
                 <div class="leaderboard-container">
                     ${lbHtml}
                 </div>
@@ -183,96 +162,223 @@ async function renderMainMenu() {
             const data = await res.json();
             state.leaderboard = data.leaderboard || [];
         }
-    } catch (err) {
-        console.warn("Could not fetch leaderboard.", err);
-    }
+    } catch (err) {}
     transitionView(getMainMenuHTML());
 }
 
 async function renderProfile() {
     history.pushState({ page: 'profile' }, "", `#profile`);
-
     try {
-        const res = await fetch('/api/user/stats', {
+        const res = await fetch('/api/user/profile', {
             method: 'GET',
             credentials: 'same-origin'
         });
         if (res.ok) {
             const data = await res.json();
-            state.config.points = data.points || 0;
+            state.config.points = data.total_points || 0;
+            state.config.description = data.description || "";
+            state.config.completedCount = data.completed_count || 0;
+            state.config.completedHashes = data.completed_hashes || [];
         }
-    } catch (err) {
-        console.warn("Failed to update stats on profile view.", err);
-    }
+    } catch (err) {}
 
     const html = `
-    <div class="row justify-content-center py-5">
-        <div class="col-md-6 col-lg-5">
-            <div class="glass-panel p-4 p-md-5 shadow-lg position-relative text-center">
-                <button onclick="renderMainMenu()" class="btn btn-sm btn-outline-secondary position-absolute top-0 start-0 m-3 code-font">&larr; Back</button>
-                <h4 class="code-font text-light mb-3"><span class="text-warning">${state.config.playerName}</span></h4>
-                <div class="bg-dark border border-secondary p-4 rounded mb-4">
-                    <h1 class="display-4 fw-bold text-success mb-0">${state.config.points}</h1>
-                    <span class="text-secondary small code-font">Points</span>
+    <div class="row mb-5 pb-4 border-bottom" style="border-color: rgba(255,255,255,0.05) !important;">
+        <div class="col-12">
+            <button onclick="renderMainMenu()" class="btn btn-outline-info border-0 px-0">&larr; BACK</button>
+        </div>
+    </div>
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="glass-panel p-5">
+                <h2 class="mb-1">${escapeHTML(state.config.playerName)}</h2>
+                <p class="code-font hex-accent mb-5">PROFILE</p>
+
+                <div class="row g-4 mb-5">
+                    <div class="col-6">
+                        <p class="text-secondary code-font mb-1" style="font-size: 0.7rem;">TOTAL SCORE</p>
+                        <h3 class="fw-bold mb-0">${state.config.points}</h3>
+                    </div>
+                    <div class="col-6">
+                        <p class="text-secondary code-font mb-1" style="font-size: 0.7rem;">CHALLENGES CLEARED</p>
+                        <h3 class="fw-bold mb-0">${state.config.completedCount}</h3>
+                    </div>
                 </div>
-                <button class="btn btn-outline-danger w-100 code-font fw-bold" onclick="logout()">Log Out</button>
+
+                <form onsubmit="updateDescription(event)" class="mb-5">
+                    <div class="mb-4">
+                        <label class="form-label code-font text-secondary" style="font-size: 0.7rem;">PUBLIC DESCRIPTION (HTML PERMITTED)</label>
+                        <textarea id="profileDesc" class="form-control" rows="5" maxlength="2048">${escapeHTML(state.config.description)}</textarea>
+                    </div>
+                    <button type="submit" class="btn btn-info w-100 mb-2">UPDATE PROFILE</button>
+                    <div id="profileError" class="text-success mt-2 small code-font text-center" style="min-height: 20px;"></div>
+                </form>
+
+                <button class="btn btn-danger w-100" class="text-success mt-2 small code-font text-center" style="min-height: 20px;" onclick="deleteAccount()">DELETE ACCOUNT</button>
+
+                <div class="border-top pt-4 mt-4" style="border-color: rgba(255,255,255,0.05) !important;">
+                    <button class="btn btn-outline-info w-100" style="color: #666; border-color: rgba(255,255,255,0.05);" onclick="logout()">LOG OUT</button>
+                </div>
             </div>
         </div>
     </div>`;
     transitionView(html);
 }
 
+window.renderPublicProfile = async function(username) {
+    history.pushState({ page: 'public_profile', user: username }, "", `#user-${username}`);
+
+    try {
+        const params = new URLSearchParams();
+        params.append('username', username);
+        const res = await fetch('/api/user/public', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: params.toString()
+        });
+
+        if (!res.ok) {
+            transitionView(`
+            <div class="row justify-content-center py-5">
+                <div class="col-md-6 text-center">
+                    <h3 class="text-secondary">DOSSIER NOT FOUND</h3>
+                    <button onclick="renderMainMenu()" class="btn btn-outline-info mt-4">BACK</button>
+                </div>
+            </div>`);
+            return;
+        }
+
+        const data = await res.json();
+        const html = `
+        <div class="row mb-5 pb-4 border-bottom" style="border-color: rgba(255,255,255,0.05) !important;">
+            <div class="col-12">
+                <button onclick="renderMainMenu()" class="btn btn-outline-info border-0 px-0">&larr; BACK</button>
+            </div>
+        </div>
+        <div class="row justify-content-center">
+            <div class="col-lg-6">
+                <div class="glass-panel p-5">
+                    <h2 class="mb-1">${escapeHTML(data.username)}</h2>
+                    <p class="code-font hex-accent mb-5">PROFILE</p>
+
+                    <div class="row g-4 mb-5 border-bottom pb-5" style="border-color: rgba(255,255,255,0.05) !important;">
+                        <div class="col-6">
+                            <p class="text-secondary code-font mb-1" style="font-size: 0.7rem;">TOTAL SCORE</p>
+                            <h3 class="fw-bold mb-0">${data.total_points}</h3>
+                        </div>
+                        <div class="col-6">
+                            <p class="text-secondary code-font mb-1" style="font-size: 0.7rem;">CHALLENGES CLEARED</p>
+                            <h3 class="fw-bold mb-0">${data.completed_count}</h3>
+                        </div>
+                    </div>
+
+                    <div>
+                        <p class="text-secondary code-font mb-3" style="font-size: 0.7rem;">DESCRIPTION</p>
+                        <div class="text-light" style="word-break: break-all; overflow-x: auto;">
+                            ${sanitizeHTML(data.description) || "<span class='text-secondary code-font'>[ NO DATA PROVIDED ]</span>"}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+        transitionView(html);
+    } catch (err) {
+        renderMainMenu();
+    }
+};
+
+async function updateDescription(event) {
+    event.preventDefault();
+    const desc = document.getElementById('profileDesc').value;
+    const params = new URLSearchParams();
+    params.append('description', desc);
+
+    try {
+        const res = await fetch('/api/user/profile/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            credentials: 'same-origin',
+            body: params.toString()
+        });
+        if (res.ok) {
+            state.config.description = desc;
+            document.getElementById('profileError').innerText = "Success";
+            document.getElementById('profileError').classList.replace("text-danger", "text-success");
+        }
+    } catch (err) {
+        document.getElementById('profileError').innerText = "Failure";
+        document.getElementById('profileError').classList.replace("text-success", "text-danger");
+    }
+}
+
 function renderAuth() {
     const authHTML = `
     <div class="row justify-content-center py-5">
-        <div class="col-md-6 col-lg-5">
-            <div class="glass-panel p-4 p-md-5 shadow-lg position-relative">
-                <button onclick="renderMainMenu()" class="btn btn-sm btn-outline-secondary position-absolute top-0 start-0 m-3 code-font">&larr; Back</button>
-                <h2 class="fw-bold mb-1 text-center mt-3">Account</h2>
+        <div class="col-md-5">
+            <div class="glass-panel p-5">
+                <button onclick="renderMainMenu()" class="btn btn-outline-info border-0 px-0 mb-4">&larr; BACK</button>
+                <h2 class="mb-4">LOG IN / SIGN UP</h2>
 
-                <ul class="nav nav-tabs mt-4" id="authTabs" role="tablist">
-                  <li class="nav-item" role="presentation">
-                    <button class="nav-link active text-info code-font" id="login-tab" data-bs-toggle="tab" data-bs-target="#login" type="button" role="tab">Login</button>
+                <ul class="nav nav-pills mb-5 border-bottom pb-3" id="authTabs" role="tablist" style="border-color: rgba(255,255,255,0.05) !important;">
+                  <li class="nav-item me-3" role="presentation">
+                    <button class="nav-link active code-font text-light bg-transparent p-0 hex-accent" id="login-tab" data-bs-toggle="pill" data-bs-target="#login" type="button" role="tab">LOGIN</button>
                   </li>
                   <li class="nav-item" role="presentation">
-                    <button class="nav-link text-info code-font" id="register-tab" data-bs-toggle="tab" data-bs-target="#register" type="button" role="tab">Register</button>
+                    <button class="nav-link code-font text-secondary bg-transparent p-0" id="register-tab" data-bs-toggle="pill" data-bs-target="#register" type="button" role="tab" onclick="document.getElementById('login-tab').classList.remove('hex-accent'); this.classList.add('hex-accent');">REGISTER</button>
                   </li>
                 </ul>
 
-                <div class="tab-content mt-4" id="authTabContent">
+                <div class="tab-content" id="authTabContent">
                   <div class="tab-pane fade show active" id="login" role="tabpanel">
                     <form onsubmit="handleAuth(event, '/api/auth/login')">
-                        <div class="mb-3">
-                            <label class="form-label text-secondary small fw-bold">Username</label>
-                            <input type="text" name="username" class="form-control bg-dark text-light border-secondary" required>
-                        </div>
                         <div class="mb-4">
-                            <label class="form-label text-secondary small fw-bold">Password</label>
-                            <input type="password" name="password" class="form-control bg-dark text-light border-secondary" required>
+                            <label class="form-label code-font text-secondary" style="font-size: 0.7rem;">USERNAME</label>
+                            <input type="text" name="username" class="form-control" autocomplete="off" required>
                         </div>
-                        <button type="submit" class="btn btn-info w-100 fw-bold code-font">Login &rarr;</button>
+                        <div class="mb-5">
+                            <label class="form-label code-font text-secondary" style="font-size: 0.7rem;">PASSWORD</label>
+                            <input type="password" name="password" class="form-control" autocomplete="off" required>
+                        </div>
+                        <button type="submit" class="btn btn-info w-100">SUBMIT</button>
                     </form>
                   </div>
 
                   <div class="tab-pane fade" id="register" role="tabpanel">
                     <form onsubmit="handleAuth(event, '/api/auth/register')">
-                        <div class="mb-3">
-                            <label class="form-label text-secondary small fw-bold">New Username</label>
-                            <input type="text" name="username" class="form-control bg-dark text-light border-secondary" required>
-                        </div>
                         <div class="mb-4">
-                            <label class="form-label text-secondary small fw-bold">Password</label>
-                            <input type="password" name="password" class="form-control bg-dark text-light border-secondary" required>
+                            <label class="form-label code-font text-secondary" style="font-size: 0.7rem;">USERNAME</label>
+                            <input type="text" name="username" class="form-control" autocomplete="off" required>
                         </div>
-                        <button type="submit" class="btn btn-warning w-100 fw-bold code-font text-dark">Register &rarr;</button>
+                        <div class="mb-5">
+                            <label class="form-label code-font text-secondary" style="font-size: 0.7rem;">PASSWORD</label>
+                            <input type="password" name="password" class="form-control" autocomplete="off" required>
+                        </div>
+                        <button type="submit" class="btn btn-info w-100">SIGN UP</button>
                     </form>
                   </div>
                 </div>
-                <div id="authError" class="text-danger mt-3 small code-font text-center"></div>
+                <div id="authError" class="text-danger mt-4 code-font text-center" style="font-size: 0.8rem; min-height: 20px;"></div>
             </div>
         </div>
     </div>`;
     transitionView(authHTML);
+
+    setTimeout(() => {
+        document.getElementById('login-tab').addEventListener('click', function() {
+            this.classList.add('hex-accent');
+            this.classList.replace('text-secondary', 'text-light');
+            const reg = document.getElementById('register-tab');
+            reg.classList.remove('hex-accent');
+            reg.classList.replace('text-light', 'text-secondary');
+        });
+        document.getElementById('register-tab').addEventListener('click', function() {
+            this.classList.add('hex-accent');
+            this.classList.replace('text-secondary', 'text-light');
+            const log = document.getElementById('login-tab');
+            log.classList.remove('hex-accent');
+            log.classList.replace('text-light', 'text-secondary');
+        });
+    }, 500);
 }
 
 async function handleAuth(event, endpoint) {
@@ -291,15 +397,15 @@ async function handleAuth(event, endpoint) {
         });
         const data = await res.json();
         if (!res.ok) {
-            document.getElementById('authError').innerText = data.error || "Authentication failed.";
+            document.getElementById('authError').innerText = data.error ? data.error.toUpperCase() : "AUTHENTICATION FAILED.";
             return;
         }
         state.config.playerName = data.username;
         state.config.points = data.total_points || 0;
         state.config.isGuest = false;
-        renderMainMenu();
+        initApp();
     } catch (err) {
-        document.getElementById('authError').innerText = "Network error. Server offline.";
+        document.getElementById('authError').innerText = "NETWORK ERROR.";
     }
 }
 
@@ -308,16 +414,44 @@ async function logout() {
     state.config.playerName = null;
     state.config.points = 0;
     state.config.isGuest = false;
+    state.config.completedHashes = [];
+    state.config.completedCount = 0;
     renderMainMenu();
 }
 
-function nextChallenge() {
+function selectNextChallenge() {
     const available = state.challenges.filter(c => c.type === state.config.category);
-    if (available.length === 0) {
+    if (available.length === 0) return null;
+
+    let uncompleted = available.filter(c => !state.config.completedHashes.includes(hashStr(c.id)));
+
+    if (uncompleted.length === 0) {
+        return "COMPLETE";
+    }
+
+    return uncompleted[Math.floor(Math.random() * uncompleted.length)];
+}
+
+function nextChallenge() {
+    const chal = selectNextChallenge();
+    if (!chal) {
         renderMainMenu();
         return;
     }
-    state.currentChallenge = available[Math.floor(Math.random() * available.length)];
+    if (chal === "COMPLETE") {
+        const completeHtml = `
+            <div class="row justify-content-center align-items-center flex-grow-1 py-5">
+                <div class="col-md-6 text-center">
+                    <h2 class="hex-accent mb-4">CATEGORY SECURED</h2>
+                    <p class="text-secondary mb-5">All available vectors in ${escapeHTML(state.config.category).toUpperCase()} have been neutralized.</p>
+                    <button onclick="state.config.completedHashes = []; nextChallenge()" class="btn btn-outline-info me-3">RESTART SEQUENCE</button>
+                    <button onclick="renderMainMenu()" class="btn btn-info">MAIN MENU</button>
+                </div>
+            </div>`;
+        transitionView(completeHtml);
+        return;
+    }
+    state.currentChallenge = chal;
     renderChallenge(state.currentChallenge);
 }
 
@@ -331,24 +465,26 @@ function startGame(category) {
     }
 
     const setupHTML = `
-<div class="row justify-content-center py-5">
-    <div class="col-md-6 col-lg-5">
-        <div class="glass-panel p-4 p-md-5 shadow-lg position-relative">
-            <button onclick="renderMainMenu()" class="btn btn-sm btn-outline-secondary position-absolute top-0 start-0 m-3 code-font">&larr; Back</button>
-            <h2 class="fw-bold mb-1 text-center mt-3">New Game</h2>
-            <p class="text-center text-info code-font small mb-4">Category: <b class="text-uppercase">${category}</b></p>
-            <form onsubmit="launchGuestGame(event)">
-                <div class="mb-4">
-                    <label class="form-label text-secondary small fw-bold">Guest Name</label>
-                    <input type="text" id="playerName" class="form-control form-control-lg bg-dark text-light border-secondary" required autocomplete="off">
-                </div>
-                <div class="d-grid">
-                    <button type="submit" class="btn btn-info btn-lg fw-bold code-font">Play as Guest &rarr;</button>
-                </div>
-            </form>
+    <div class="row mb-5 pb-4 border-bottom" style="border-color: rgba(255,255,255,0.05) !important;">
+        <div class="col-12">
+            <button onclick="renderMainMenu()" class="btn btn-outline-info border-0 px-0">&larr; BACK</button>
         </div>
     </div>
-</div>`;
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="glass-panel p-5">
+                <h2 class="mb-4">PLAY AS GUEST</h2>
+                <p class="code-font text-secondary mb-5">MODE: <span class="text-light">${escapeHTML(category).toUpperCase()}</span></p>
+                <form onsubmit="launchGuestGame(event)">
+                    <div class="mb-5">
+                        <label class="form-label code-font text-secondary" style="font-size: 0.7rem;">GUEST NAME</label>
+                        <input type="text" id="playerName" class="form-control" required autocomplete="off" maxlength="31">
+                    </div>
+                    <button type="submit" class="btn btn-info w-100">CONTINUE</button>
+                </form>
+            </div>
+        </div>
+    </div>`;
     transitionView(setupHTML, () => document.getElementById('playerName').focus());
 }
 
@@ -356,28 +492,25 @@ async function launchGuestGame(event) {
     event.preventDefault();
     state.config.playerName = document.getElementById('playerName').value || 'Guest';
     state.config.isGuest = true;
+
     appDiv.innerHTML = `
-        <div class="text-center py-5">
-            <div class="spinner-border text-info mb-3" role="status"></div>
-            <h3 class="code-font text-muted">Authenticating Session...</h3>
+        <div class="d-flex justify-content-center align-items-center flex-grow-1">
+            <p class="code-font text-secondary" style="letter-spacing: 0.2em;">LOADING CHALLENGE...</p>
         </div>`;
+
     try {
         const authRes = await fetch('/api/auth/guest', {
             method: 'POST',
             credentials: 'same-origin'
         });
-        if (!authRes.ok) throw new Error("Failed to authenticate guest.");
-    } catch (err) {
-        console.warn("Auth failed, continuing in offline mode.", err);
-    }
+    } catch (err) {}
     loadChallenges();
 }
 
 async function launchGameDirectly() {
     appDiv.innerHTML = `
-        <div class="text-center py-5">
-            <div class="spinner-border text-info mb-3" role="status"></div>
-            <h3 class="code-font text-muted">Loading Data...</h3>
+        <div class="d-flex justify-content-center align-items-center flex-grow-1">
+            <p class="code-font text-secondary" style="letter-spacing: 0.2em;">LOADING CHALLENGE...</p>
         </div>`;
     loadChallenges();
 }
@@ -389,79 +522,144 @@ async function loadChallenges() {
         const data = await res.json();
         state.challenges = data.challenges;
     } catch (err) {
-        console.warn("Using mock DB. Server missing or CORS error.", err);
         state.challenges = MOCK_DB.challenges;
     }
 
-    const available = state.challenges.filter(c => c.type === state.config.category);
-    if (available.length === 0) {
-        appDiv.innerHTML = `<div class="text-center py-5"><h3 class="text-danger">No Challenges Found</h3><p>Could not find any challenges for ${state.config.category}.</p><button onclick="renderMainMenu()" class="btn btn-outline-light">Return</button></div>`;
-        return;
-    }
-
-    state.currentChallenge = available[Math.floor(Math.random() * available.length)];
-    renderChallenge(state.currentChallenge);
+    nextChallenge();
 }
 
 function renderChallenge(chal) {
     let html = `
-    <div class="row justify-content-center py-4">
+    <div class="row mb-5 pb-4 border-bottom" style="border-color: rgba(255,255,255,0.05) !important;">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <button onclick="renderMainMenu()" class="btn btn-outline-info border-0 px-0">&larr; EXIT</button>
+            <span class="code-font text-secondary" style="font-size: 0.8rem;">ID: ${escapeHTML(chal.id)}</span>
+        </div>
+    </div>
+    <div class="row justify-content-center">
         <div class="col-lg-8">
-            <div class="glass-panel p-4 shadow-lg position-relative">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <span class="badge bg-secondary text-uppercase code-font">${chal.difficulty}</span>
-                    <span class="code-font text-muted small">ID: ${chal.id}</span>
-                </div>
-                <h2 class="fw-bold text-info mb-2">${chal.title}</h2>
-                <p class="text-light mb-4">${chal.description}</p>`;
+            <div class="mb-5">
+                <span class="badge bg-dark mb-4">${escapeHTML(chal.difficulty)}</span>
+                <h2 class="mb-3">${escapeHTML(chal.title)}</h2>
+                <p class="text-secondary" style="font-size: 1.1rem;">${escapeHTML(chal.description)}</p>
+            </div>`;
+
     if (chal.codeblock && chal.codeblock.length > 0) {
-        html += `<div class="bg-dark p-3 rounded mb-4" style="border-left: 3px solid #38bdf8; overflow-x: auto;">
-                    <pre class="mb-0"><code class="code-font text-light" style="font-size: 0.9rem;">${chal.codeblock.join('\n')}</code></pre>
-                 </div>`;
+        if (chal.hex_fields && chal.hex_fields.length > 0) {
+            let byteIdx = 0;
+            const processedLines = chal.codeblock.map(line => {
+                return line.split(' ').map(token => {
+                    if (/^[0-9a-fA-F]{2}$/.test(token)) {
+                        let span = `<span class="hex-byte" data-idx="${byteIdx}">${escapeHTML(token)}</span>`;
+                        byteIdx++;
+                        return span;
+                    }
+                    return escapeHTML(token);
+                }).join(' ');
+            });
+
+            html += `
+                <div class="mb-5">
+                    <div class="d-flex justify-content-between align-items-center mb-2 px-1">
+                        <span class="code-font text-secondary" style="font-size: 0.7rem; letter-spacing: 0.1em;">PAYLOAD EXAMINER</span>
+                        <span id="hex-inspector" class="code-font hex-accent" style="font-size: 0.7rem; letter-spacing: 0.1em;">AWAITING HOVER</span>
+                    </div>
+                    <div class="hex-container-wrapper p-4" style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); overflow-x: auto;">
+                        <pre class="mb-0"><code class="code-font text-light" id="hex-container">${processedLines.join('\n')}</code></pre>
+                    </div>
+                </div>`;
+        } else {
+            html += `
+                <div class="p-4 mb-5" style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); overflow-x: auto;">
+                    <pre class="mb-0"><code class="code-font text-light">${escapeHTML(chal.codeblock.join('\n'))}</code></pre>
+                </div>`;
+        }
     }
 
     html += `<form id="submitForm" onsubmit="submitAnswers(event)">`;
 
     chal.questions.forEach((q, index) => {
-        html += `<div class="mb-4 p-3 border border-secondary rounded" style="background: rgba(0,0,0,0.2);">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <h5 class="mb-0">Q${index + 1}: ${q.question}</h5>
-                        <span class="badge bg-dark border border-secondary">${q.points} pts</span>
-                    </div>`;
+        html += `
+            <div class="q-container">
+                <div class="d-flex justify-content-between align-items-start mb-4">
+                    <h5 class="mb-0 pe-4" style="font-family: 'Inter', sans-serif; font-weight: 400;">${escapeHTML(q.question)}</h5>
+                    <span class="code-font hex-accent flex-shrink-0">${q.points} PTS</span>
+                </div>`;
+
         if (q.type === 'text') {
-            const placeholder = q.ui_hints?.placeholder || "Enter answer...";
-            html += `<input type="text" name="q${q.id}" class="form-control bg-dark text-light border-secondary mt-3 code-font" placeholder="${placeholder}" required>`;
+            const placeholder = q.ui_hints?.placeholder || "ANSWER...";
+            html += `<input type="text" name="q${q.id}" class="form-control w-100" placeholder="${escapeHTML(placeholder)}" autocomplete="off" required>`;
         } else if (q.type === 'multiple_choice') {
             html += `<div class="mt-3">`;
             q.responses.forEach(r => {
-                html += `<div class="form-check mb-2">
-                            <input class="form-check-input" type="radio" name="q${q.id}" id="q${q.id}_r${r.id}" value="${r.id}" required>
-                            <label class="form-check-label code-font" for="q${q.id}_r${r.id}">${r.text}</label>
-                         </div>`;
+                html += `
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="radio" name="q${q.id}" id="q${q.id}_r${r.id}" value="${r.id}" required>
+                        <label class="form-check-label code-font text-light" for="q${q.id}_r${r.id}" style="font-size: 0.9rem;">${escapeHTML(r.text)}</label>
+                    </div>`;
             });
             html += `</div>`;
         } else if (q.type === 'multiple_response') {
             html += `<div class="mt-3">`;
             q.responses.forEach(r => {
-                html += `<div class="form-check mb-2">
-                            <input class="form-check-input" type="checkbox" data-question="q${q.id}" id="q${q.id}_r${r.id}" value="${r.id}">
-                            <label class="form-check-label code-font" for="q${q.id}_r${r.id}">${r.text}</label>
-                         </div>`;
+                html += `
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" data-question="q${q.id}" id="q${q.id}_r${r.id}" value="${r.id}">
+                        <label class="form-check-label code-font text-light" for="q${q.id}_r${r.id}" style="font-size: 0.9rem;">${escapeHTML(r.text)}</label>
+                    </div>`;
             });
             html += `</div>`;
         }
         html += `</div>`;
     });
-    html += `   <div class="d-flex justify-content-between align-items-center mt-4">
-                    <button type="button" class="btn btn-outline-secondary code-font" onclick="renderMainMenu()">Abort</button>
-                    <button type="submit" class="btn btn-info fw-bold code-font px-5">Submit Payload &rarr;</button>
+
+    html += `
+                <div class="pt-5 mt-3 border-top" style="border-color: rgba(255,255,255,0.05) !important;">
+                    <button type="submit" class="btn btn-info w-100 py-3">SUBMIT</button>
                 </div>
             </form>
-            </div>
         </div>
     </div>`;
 
-    transitionView(html);
+    transitionView(html, () => {
+        const container = document.getElementById('hex-container');
+        const inspector = document.getElementById('hex-inspector');
+
+        if (container && inspector) {
+            container.addEventListener('mouseover', (e) => {
+                if (e.target.classList.contains('hex-byte')) {
+                    const idx = parseInt(e.target.getAttribute('data-idx'));
+                    let fieldName = "UNKNOWN FIELD";
+                    let start = idx;
+                    let length = 1;
+
+                    if (state.currentChallenge.hex_fields) {
+                        const field = state.currentChallenge.hex_fields.find(f => idx >= f.start && idx < f.start + f.length);
+                        if (field) {
+                            fieldName = field.name;
+                            start = field.start;
+                            length = field.length;
+                        }
+                    }
+
+                    const hexOffset = `0x${idx.toString(16).padStart(2, '0').toUpperCase()}`;
+                    inspector.innerText = `[ OFFSET: ${hexOffset} ] ${fieldName}`;
+
+                    document.querySelectorAll('.hex-byte.highlighted').forEach(el => el.classList.remove('highlighted'));
+
+                    for (let i = start; i < start + length; i++) {
+                        const byteEl = container.querySelector(`.hex-byte[data-idx="${i}"]`);
+                        if (byteEl) byteEl.classList.add('highlighted');
+                    }
+                }
+            });
+
+            container.addEventListener('mouseout', (e) => {
+                document.querySelectorAll('.hex-byte.highlighted').forEach(el => el.classList.remove('highlighted'));
+                inspector.innerText = "AWAITING HOVER";
+            });
+        }
+    });
 }
 
 async function submitAnswers(event) {
@@ -485,12 +683,12 @@ async function submitAnswers(event) {
             params.append(`q${q.id}`, bitmask);
         }
     });
+
     appDiv.innerHTML = `
-        <div class="text-center py-5">
-            <div class="spinner-border text-warning mb-3" role="status"></div>
-            <h3 class="code-font text-muted">Awaiting backend validation...</h3>
-            <p class="text-secondary code-font small">${params.toString()}</p>
+        <div class="d-flex justify-content-center align-items-center flex-grow-1">
+            <p class="code-font text-secondary" style="letter-spacing: 0.2em;">VERIFYING...</p>
         </div>`;
+
     try {
         const response = await fetch('/api/challenge/verify', {
             method: 'POST',
@@ -502,57 +700,71 @@ async function submitAnswers(event) {
 
         if (!response.ok) {
             let errorHtml = `
-                <div class="row justify-content-center py-5">
+                <div class="row justify-content-center align-items-center flex-grow-1 py-5">
                     <div class="col-md-6 text-center">
-                        <div class="glass-panel p-5 shadow-lg">
-                            <h2 class="text-danger fw-bold mb-3">Verification Failed</h2>
-                            <p class="lead text-light mb-4">${result.error || "An unknown error occurred."}</p>
-                            <button onclick="renderMainMenu()" class="btn btn-outline-info code-font px-4">Return to Main Menu</button>
-                        </div>
+                        <h2 class="text-danger mb-4">TRANSMISSION FAILED</h2>
+                        <p class="text-secondary mb-5">${escapeHTML(result.error) || "UNKNOWN ERROR."}</p>
+                        <button onclick="renderMainMenu()" class="btn btn-outline-info">BACK</button>
                     </div>
                 </div>`;
             transitionView(errorHtml);
             return;
         }
 
-        // Add the earned points to local state
+        if (result.total_earned === result.max_points) {
+            const hId = hashStr(state.currentChallenge.id);
+            if (!state.config.completedHashes.includes(hId)) {
+                state.config.completedHashes.push(hId);
+                if (!state.config.isGuest) {
+                    state.config.completedCount++;
+                }
+            }
+        }
+
         if (result.total_earned > 0 && !state.config.isGuest) {
             state.config.points += result.total_earned;
         }
 
-        let headerText = "Partial Success";
-        let headerClass = "text-warning";
+        let headerText = "PARTIAL MATCH";
+        let headerClass = "text-secondary";
         if (result.total_earned === result.max_points) {
-            headerText = "Challenge Mastered";
-            headerClass = "text-success";
+            headerText = "SUCCESS";
+            headerClass = "hex-accent";
         } else if (result.total_earned === 0) {
-            headerText = "Incorrect";
+            headerText = "FAILED";
             headerClass = "text-danger";
         }
 
         let resultHtml = `
             <div class="row justify-content-center py-5">
-                <div class="col-md-8">
-                    <div class="glass-panel p-4 p-md-5 shadow-lg">
-                        <h2 class="text-center ${headerClass} fw-bold mb-2">
-                            ${headerText}
-                        </h2>
-                        <h4 class="text-center text-light mb-4 code-font">Score: ${result.total_earned} / ${result.max_points}</h4>
+                <div class="col-lg-8">
+                    <div class="glass-panel p-5">
+                        <h2 class="${headerClass} text-center mb-5">${headerText}</h2>
+
+                        <div class="d-flex justify-content-center mb-5">
+                            <div class="text-center">
+                                <p class="code-font text-secondary mb-1" style="font-size: 0.7rem;">SCORE</p>
+                                <h1 class="display-4 fw-bold mb-0">${result.total_earned} <span class="text-secondary fs-4">/ ${result.max_points}</span></h1>
+                            </div>
+                        </div>
+
                         <div class="mb-5">`;
 
         if (result.results && Array.isArray(result.results)) {
             result.results.forEach(r => {
                 const isCorrect = r.correct === true || r.correct === "true";
+                const blockClass = isCorrect ? "rgba(212, 175, 55, 0.05)" : "rgba(255, 0, 0, 0.05)";
+                const borderClass = isCorrect ? "rgba(212, 175, 55, 0.2)" : "rgba(255, 0, 0, 0.2)";
+                const textClass = isCorrect ? "hex-accent" : "text-danger";
+
                 resultHtml += `
-                    <div class="p-3 mb-3 rounded border ${isCorrect ? 'border-success' : 'border-danger'} bg-dark" style="background: rgba(0,0,0,0.3);">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <strong class="${isCorrect ? 'text-success' : 'text-danger'} code-font">
-                                Question ${r.id}: ${isCorrect ? 'CORRECT' : 'INCORRECT'}
-                            </strong>
-                            <span class="badge ${isCorrect ? 'bg-success' : 'bg-danger'}">${r.earned} pts</span>
+                    <div class="p-4 mb-4" style="background: ${blockClass}; border: 1px solid ${borderClass};">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="code-font ${textClass}">Q${r.id} // ${isCorrect ? 'CORRECT' : 'INCORRECT'}</span>
+                            <span class="code-font text-light">${r.earned} PTS</span>
                         </div>
-                        <p class="mb-0 small text-secondary font-monospace">
-                            <span class="text-info">Explanation:</span> ${r.explanation}
+                        <p class="mb-0 text-secondary" style="font-size: 0.95rem;">
+                            <span class="code-font text-light">EXPLANATION:</span> ${escapeHTML(r.explanation)}
                         </p>
                     </div>`;
             });
@@ -560,9 +772,9 @@ async function submitAnswers(event) {
 
         resultHtml += `
                         </div>
-                        <div class="d-flex justify-content-center gap-3">
-                            <button onclick="renderMainMenu()" class="btn btn-outline-info code-font px-4 fw-bold">Main Menu</button>
-                            <button onclick="nextChallenge()" class="btn btn-info code-font px-4 fw-bold">Next Challenge &rarr;</button>
+                        <div class="d-flex justify-content-center gap-4 border-top pt-5" style="border-color: rgba(255,255,255,0.05) !important;">
+                            <button onclick="renderMainMenu()" class="btn btn-outline-info">MAIN MENU</button>
+                            <button onclick="nextChallenge()" class="btn btn-info">CONTINUE</button>
                         </div>
                     </div>
                 </div>
@@ -571,12 +783,32 @@ async function submitAnswers(event) {
         transitionView(resultHtml);
 
     } catch (err) {
-        console.error(err);
         appDiv.innerHTML = `
-            <div class="text-center py-5">
-                <h3 class="text-danger">Backend Offline</h3>
-                <p>The FastCGI engine did not respond.</p>
-                <button onclick="renderMainMenu()" class="btn btn-outline-light">Return to Main Menu</button>
+            <div class="row justify-content-center align-items-center flex-grow-1 py-5">
+                <div class="col-md-6 text-center">
+                    <h2 class="text-danger mb-4">OFFLINE</h2>
+                    <button onclick="renderMainMenu()" class="btn btn-outline-info">BACK</button>
+                </div>
             </div>`;
+    }
+}
+
+async function deleteAccount() {
+    if (!confirm("Are you sure you'd like to delete your account?")) return;
+
+    try {
+        const res = await fetch('/api/user/delete', {
+            method: 'POST',
+            credentials: 'same-origin'
+        });
+        if (res.ok) {
+            state.config.playerName = null;
+            state.config.points = 0;
+            state.config.isGuest = false;
+            state.config.completedHashes = [];
+            renderMainMenu();
+        }
+    } catch (err) {
+        console.error("Deletion failed", err);
     }
 }

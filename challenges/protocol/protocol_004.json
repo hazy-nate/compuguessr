@@ -1,0 +1,44 @@
+{
+  "id": "protocol_004",
+  "type": "protocol",
+  "difficulty": "medium",
+  "title": "Address Configuration",
+  "description": "Analyze the dynamic host configuration initialization segment.",
+  "codeblock": [
+    "01 01 06 00 12 34 56 78 00 00 00 00 00 00 00 00",
+    "00 00 00 00 00 00 00 00 00 00 00 00 00 11 22 33",
+    "44 55 66"
+  ],
+  "hex_fields": [
+    { "start": 0, "length": 1, "name": "Message Type (Op)" },
+    { "start": 1, "length": 1, "name": "Hardware Type" },
+    { "start": 2, "length": 1, "name": "Hardware Address Length" },
+    { "start": 3, "length": 1, "name": "Hops" },
+    { "start": 4, "length": 4, "name": "Transaction ID" },
+    { "start": 8, "length": 2, "name": "Seconds Elapsed" },
+    { "start": 10, "length": 2, "name": "Flags" },
+    { "start": 12, "length": 4, "name": "Client IP Address" },
+    { "start": 16, "length": 4, "name": "Your IP Address" },
+    { "start": 20, "length": 4, "name": "Server IP Address" },
+    { "start": 24, "length": 4, "name": "Gateway IP Address" },
+    { "start": 28, "length": 6, "name": "Client Hardware Address" }
+  ],
+  "questions": [
+    {
+      "id": 1,
+      "question": "Based on the Client IP field, what is the current state of the sender?",
+      "type": "multiple_choice",
+      "points": 50,
+      "responses": [
+        { "id": 1, "text": "Renewing an existing lease." },
+        { "id": 2, "text": "Discovering a server with no current IP." },
+        { "id": 3, "text": "Declining a duplicate address." }
+      ],
+      "answer": {
+        "type": "single",
+        "value": 2,
+        "explanation": "The Client IP Address (offsets 12-15) is 0x00000000. This indicates the client does not yet have an assigned IP and is likely in the Discover or Request phase[cite: 5, 6, 7]."
+      }
+    }
+  ]
+}

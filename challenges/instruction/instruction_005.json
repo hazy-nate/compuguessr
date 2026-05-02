@@ -1,0 +1,28 @@
+{
+  "id": "instruction_005",
+  "type": "instruction",
+  "difficulty": "hard",
+  "title": "Effective Address Calculation",
+  "description": "Calculate the final value in rbx after memory-style arithmetic.",
+  "codeblock": [
+    "mov rax, 10",
+    "mov rcx, 5",
+    "lea rbx, [rax + rcx * 4 + 7]"
+  ],
+  "questions": [
+    {
+      "id": 1,
+      "question": "What is the final integer value in rbx?",
+      "type": "text",
+      "points": 50,
+      "ui_hints": {
+        "placeholder": "Decimal format"
+      },
+      "answer": {
+        "type": "text",
+        "value": "37",
+        "explanation": "The LEA (Load Effective Address) instruction performs the calculation: rax + (rcx * 4) + 7. Substituting the values: 10 + (5 * 4) + 7 = 10 + 20 + 7 = 37."
+      }
+    }
+  ]
+}

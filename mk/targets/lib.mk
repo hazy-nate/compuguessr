@@ -14,6 +14,7 @@ $(LIB)_TYPE		:= SO
 $(LIB)_LDFLAGS	:= -shared -Bsymbolic
 $(LIB)_LDLIBS	:=
 $(LIB)_DEPS		:=
+$(LIB)_CFLAGS	:= -fPIC
 
 $(LIB)_OUT := $(BIN_OUT_DIR)/$(LIB)
 

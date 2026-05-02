@@ -4,9 +4,12 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /* Copyright (C) 2026 Nathaniel Williams */
 
-/****h* core/cg_uring.h, core/cg_uring
+/****h* core/cg_uring.h
  * NAME
  *   cg_uring.h
+ * FUNCTION
+ *   Structures and context for the io_uring subsystem, managing
+ *   submission and completion queue offsets and pointers.
  ******/
 
 /*==============================================================================

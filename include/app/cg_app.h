@@ -4,9 +4,12 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /* Copyright (C) 2026 Nathaniel Williams */
 
-/****h* app/cg_app.h, app/cg_app
+/****h* app/cg_app.h
  * NAME
  *   cg_app.h
+ * FUNCTION
+ *   Main application definitions, including io_uring user_data
+ *   tagging and bitmask constants.
  ******/
 
 /*==============================================================================

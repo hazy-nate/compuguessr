@@ -22,7 +22,8 @@ RUN pacman -Syu --noconfirm && \
     git \
     mold \
     nasm \
-    postgresql-libs
+    postgresql-libs \
+    python3
 
 WORKDIR /app
 

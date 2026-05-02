@@ -1,3 +1,14 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
+/* Copyright (C) 2026 Nathaniel Williams */
+
+/****h* data/cg_sessiondb.c
+ * NAME
+ *   cg_sessiondb.c
+ * FUNCTION
+ *   Persistent session management using memory-mapped files. Handles
+ *   secure session ID generation and user-to-session mapping. [cite: 426-442]
+ ******/
+
 #include <fcntl.h>
 #include <stdint.h>
 #include <sys/mman.h>
@@ -10,6 +21,27 @@
 #include "sys/cg_types.h"
 #include "util/cg_util.h"
 
+struct cg_sessiondb *g_sessiondb = 0;
+
+/****f* data/cg_sessiondb_init
+ * NAME
+ *   cg_sessiondb_init
+ * SYNOPSIS
+ *   struct cg_sessiondb *cg_sessiondb_init(const char *fp)
+ * FUNCTION
+ *   Initializes the session database by opening or creating a file
+ *   at the specified path and mapping it into memory [cite: 426-428]. If
+ *   the file is new, it truncates it to the required size, zeroes
+ *   the memory, and initializes the database header [cite: 427, 429-430]. It
+ *   also validates the magic bytes for existing files and
+ *   configures the internal hashmap pointers [cite: 431-432].
+ * INPUTS
+ *   * fp - The filesystem path to the database file[cite: 426].
+ * RESULT
+ *   * A pointer to the memory-mapped cg_sessiondb structure, or
+ *   0 on failure [cite: 426, 429, 431-433].
+ * SOURCE
+ */
 struct cg_sessiondb *
 cg_sessiondb_init(const char *fp)
 {
@@ -48,7 +80,20 @@ cg_sessiondb_init(const char *fp)
 	db->map.count = db->hdr.entry_count;
 	return db;
 }
+/******/
 
+/****f* data/cg_sessiondb_session_id_get
+ * NAME
+ *   cg_sessiondb_session_id_get
+ * SYNOPSIS
+ *   uint64_t cg_sessiondb_session_id_get(void)
+ * FUNCTION
+ *   Generates a cryptographically secure 64-bit session
+ *   identifier using the getrandom syscall [cite: 433-434].
+ * RESULT
+ *   * A non-zero 64-bit session ID, or 0 if the syscall fails [cite: 433-434].
+ * SOURCE
+ */
 uint64_t
 cg_sessiondb_session_id_get(void)
 {
@@ -62,14 +107,47 @@ cg_sessiondb_session_id_get(void)
 	}
 	return id;
 }
+/******/
 
+/****f* data/cg_sessiondb_index_get
+ * NAME
+ *   cg_sessiondb_index_get
+ * SYNOPSIS
+ *   uint64_t cg_sessiondb_index_get(uint64_t sid)
+ * FUNCTION
+ *   Calculates the hash index for a given session ID using
+ *   the database bitmask [cite: 434-435].
+ * INPUTS
+ *   * sid - The 64-bit session identifier[cite: 434].
+ * RESULT
+ *   * The calculated index within the database pool [cite: 434-435].
+ * SOURCE
+ */
 uint64_t
 cg_sessiondb_index_get(uint64_t sid)
 {
 	uint64_t hash = cg_hash_uint64(sid);
 	return (uint32_t)(hash & CG_SESSIONDB_MASK);
 }
+/******/
 
+/****f* data/cg_sessiondb_entry_get
+ * NAME
+ *   cg_sessiondb_entry_get
+ * SYNOPSIS
+ *   struct cg_sessiondb_entry *cg_sessiondb_entry_get(struct cg_sessiondb *db, uint64_t sid)
+ * FUNCTION
+ *   Retrieves a pointer to a session entry from the database pool
+ *   using the provided session ID [cite: 435-436]. It performs a
+ *   lookup in the internal hashmap to find the entry index[cite: 435].
+ * INPUTS
+ *   * db  - Pointer to the session database[cite: 435].
+ *   * sid - The 64-bit session ID to search for[cite: 435].
+ * RESULT
+ *   * A pointer to the cg_sessiondb_entry if found and active,
+ *   otherwise 0 [cite: 435-436].
+ * SOURCE
+ */
 struct cg_sessiondb_entry *
 cg_sessiondb_entry_get(struct cg_sessiondb *db, uint64_t sid)
 {
@@ -79,7 +157,28 @@ cg_sessiondb_entry_get(struct cg_sessiondb *db, uint64_t sid)
 	}
 	return 0;
 }
+/******/
 
+/****f* data/cg_sessiondb_entry_create
+ * NAME
+ *   cg_sessiondb_entry_create
+ * SYNOPSIS
+ *   int cg_sessiondb_entry_create(struct cg_sessiondb *db, uint32_t uid, struct cg_sessiondb_entry *out)
+ * FUNCTION
+ *   Allocates and initializes a new session entry in the database
+ *   pool [cite: 436-441]. It uses an atomic compare-and-exchange operation
+ *   to safely claim an inactive slot in the pool, generates a
+ *   new session ID, and updates the hashmap [cite: 438-441].
+ * INPUTS
+ *   * db  - Pointer to the session database[cite: 436].
+ *   * uid - The user ID to associate with the new session[cite: 436, 440].
+ *   * out - Pointer to a structure that will receive a copy of
+ *   the created entry[cite: 436, 441].
+ * RESULT
+ *   * 0 on success, or 1 if the database is full or ID
+ *   generation fails [cite: 436-441].
+ * SOURCE
+ */
 int
 cg_sessiondb_entry_create(struct cg_sessiondb *db, uint32_t uid, struct cg_sessiondb_entry *out)
 {
@@ -124,7 +223,21 @@ cg_sessiondb_entry_create(struct cg_sessiondb *db, uint32_t uid, struct cg_sessi
 	cg_memcpy_avx2(out, entry, sizeof(struct cg_sessiondb_entry));
 	return 0;
 }
+/******/
 
+/****f* data/cg_sessiondb_entry_delete
+ * NAME
+ *   cg_sessiondb_entry_delete
+ * SYNOPSIS
+ *   void cg_sessiondb_entry_delete(struct cg_sessiondb *db, uint64_t sid)
+ * FUNCTION
+ *   Deactivates a session entry and removes its associated key
+ *   from the hashmap [cite: 441-442].
+ * INPUTS
+ *   * db  - Pointer to the session database[cite: 441].
+ *   * sid - The 64-bit session ID to delete[cite: 441].
+ * SOURCE
+ */
 void
 cg_sessiondb_entry_delete(struct cg_sessiondb *db, uint64_t sid)
 {
@@ -135,3 +248,4 @@ cg_sessiondb_entry_delete(struct cg_sessiondb *db, uint64_t sid)
 		db->hdr.entry_count--;
 	}
 }
+/******/

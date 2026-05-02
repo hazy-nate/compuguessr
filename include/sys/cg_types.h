@@ -4,6 +4,9 @@
 /****h* sys/cg_types.h
  * NAME
  *   cg_types.h
+ * FUNCTION
+ *   Core system type definitions, generic pointer unions, and
+ *   buffer metadata structures used across the project.
  ******/
 
 #ifndef CG_TYPES_H

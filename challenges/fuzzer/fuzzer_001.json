@@ -1,42 +1,43 @@
 {
   "id": "fuzzer_001",
   "type": "fuzzer",
-  "difficulty": "easy",
-  "title": "Unbounded",
-  "description": "Identify the issue in this C fragment.",
+  "difficulty": "medium",
+  "title": "Segment 0x4A",
+  "description": "The processing daemon rejected this incoming segment, logging an 'Invalid Boundary' exception.",
   "codeblock": [
-    "void process_data(char *input) {",
-    "    char buffer[32];",
-    "    strcpy(buffer, input);",
-    "    printf(\"Data processed: %s\\n\", buffer);",
-    "}"
+    "45 00 00 14 12 34 00 00 40 06 a2 b4 c0 a8 01 01",
+    "c0 a8 01 02 00 50 01 bb 00 00 00 00 00 00 00 00"
+  ],
+  "hex_fields": [
+    { "start": 0, "length": 1, "name": "Version / IHL" },
+    { "start": 1, "length": 1, "name": "DSCP / ECN" },
+    { "start": 2, "length": 2, "name": "Total Length" },
+    { "start": 4, "length": 2, "name": "Identification" },
+    { "start": 6, "length": 2, "name": "Flags / Fragment Offset" },
+    { "start": 8, "length": 1, "name": "Time to Live" },
+    { "start": 9, "length": 1, "name": "Protocol" },
+    { "start": 10, "length": 2, "name": "Header Checksum" },
+    { "start": 12, "length": 4, "name": "Source IP Address" },
+    { "start": 16, "length": 4, "name": "Destination IP Address" },
+    { "start": 20, "length": 2, "name": "TCP Source Port" },
+    { "start": 22, "length": 2, "name": "TCP Destination Port" }
   ],
   "questions": [
     {
       "id": 1,
-      "question": "Which C standard library function introduces the vulnerability?",
-      "type": "text",
-      "points": 25,
-      "answer": {
-        "type": "text",
-        "value": "strcpy",
-        "explanation": "strcpy() does not check the size of the destination buffer, making it dangerous when handling external input."
-      }
-    },
-    {
-      "id": 2,
-      "question": "What specific class of vulnerability is present?",
+      "question": "Which field creates the boundary conflict for the specified protocol?",
       "type": "multiple_choice",
-      "points": 25,
+      "points": 50,
       "responses": [
-        { "id": 1, "text": "Integer Overflow" },
-        { "id": 2, "text": "Use-After-Free" },
-        { "id": 3, "text": "Buffer Overflow" }
+        { "id": 1, "text": "Total Length" },
+        { "id": 2, "text": "Identification" },
+        { "id": 3, "text": "Time to Live" },
+        { "id": 4, "text": "Protocol" }
       ],
       "answer": {
         "type": "single",
-        "value": 3,
-        "explanation": "If 'input' is longer than 32 bytes, it will overwrite adjacent memory on the stack."
+        "value": 1,
+        "explanation": "Total Length is 0x0014 (20 bytes). Since the IP header is 20 bytes and the Protocol is TCP (0x06), there is no room left for the TCP header."
       }
     }
   ]
